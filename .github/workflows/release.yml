@@ -111,14 +111,14 @@ jobs:
           draft: false
           prerelease: false
       - name: Upload macOS asset
-        uses: actions/upload-release-asset@v2
+        uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: release-artifacts/Ohayo-macos.zip
           asset_name: Ohayo-macos.zip
           asset_content_type: application/zip
       - name: Upload Windows asset
-        uses: actions/upload-release-asset@v2
+        uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: release-artifacts/Ohayo.exe
