@@ -36,21 +36,3 @@ build_windows.bat
 3. Set stop time (HH:MM)
 4. Click Start
 5. View logs
-
-## GitHub
-
-```bash
-./init_github.sh
-git remote add origin https://github.com/YOUR-USERNAME/Ohayo.git
-git push -u origin main
-```
-
-## GitHub Release Workflow
-
-This project includes a GitHub Actions workflow that:
-- automatically creates a new release with a version tag in `0.0.1` format
-- detects the previous release tag and increments the version
-- releases only macOS and Windows packages
-- keeps minor/patch digits between `0` and `9`
-
-Use the workflow on GitHub: `.github/workflows/release.yml`
