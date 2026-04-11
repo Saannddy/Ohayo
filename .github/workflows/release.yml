@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   determine-version:
     runs-on: ubuntu-latest
@@ -104,6 +107,7 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: v${{ needs.determine-version.outputs.version }}
           release_name: "おはよう ${{ needs.determine-version.outputs.version }}"
           body: |
@@ -113,6 +117,7 @@ jobs:
       - name: Upload macOS asset
         uses: actions/upload-release-asset@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: release-artifacts/Ohayo-macos.zip
           asset_name: Ohayo-macos.zip
@@ -120,6 +125,7 @@ jobs:
       - name: Upload Windows asset
         uses: actions/upload-release-asset@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: release-artifacts/Ohayo.exe
           asset_name: Ohayo.exe
