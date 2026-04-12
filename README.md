@@ -13,12 +13,12 @@ python3 app.py
 
 **macOS:**
 ```bash
-./build_macos.sh
+./scripts/build_macos.sh
 ```
 
 **Windows:**
 ```bash
-build_windows.bat
+scripts/build_windows.bat
 ```
 
 ## Features
