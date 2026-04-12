@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0.."
 rmdir /s /q build dist 2>nul
 del /q *.spec 2>nul
 python -m pip install --upgrade pip

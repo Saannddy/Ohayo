@@ -1,7 +1,7 @@
 import sys
 import tkinter as tk
-from scripts.theme import LIGHT_THEME, DARK_THEME, ModernEntry, ModernButton
-from scripts.curl import start_curling, stop_curling, clear_log
+from theme import LIGHT_THEME, DARK_THEME, ModernEntry, ModernButton
+from curl import start_curling, stop_curling, clear_log
 
 TITLE_FONT = ("Segoe UI" if sys.platform == "win32" else "SF Pro Display", 24, "bold")
 HEADER_FONT = ("Segoe UI" if sys.platform == "win32" else "SF Pro Display", 11, "bold")
@@ -70,7 +70,7 @@ def toggle_theme(widgets):
 
 def build_main_window():
     root = tk.Tk()
-    root.title("おはよう - URL Curl Scheduler")
+    root.title("おはよう")
     root.geometry("700x700")
     root.resizable(True, True)
     root.minsize(600, 500)
