@@ -38,8 +38,8 @@ python3 app.py
 ### Windows
 ```bash
 scripts\build_windows.bat
-# Creates: dist\Ohayo.exe
-# Run: dist\Ohayo.exe
+# Creates: dist/おはよう.exe
+# Run: dist/おはよう.exe
 ```
 
 ## 🎨 UI/UX Improvements
