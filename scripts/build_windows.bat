@@ -8,4 +8,4 @@ if not exist icon.ico (
     python -c "from PIL import Image; img = Image.open('images/icon.png'); img.save('icon.ico', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
 )
 pyinstaller --onefile --windowed --name "おはよう" --icon=icon.ico app.py
-echo ✅ Windows app created: dist\Ohayo.exe
+echo ✅ Windows app created: dist\おはよう.exe

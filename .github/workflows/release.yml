@@ -119,16 +119,16 @@ jobs:
         shell: pwsh
         run: |
           [System.IO.File]::WriteAllBytes('windows-cert.pfx', [System.Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
-          signtool sign /f windows-cert.pfx /p $env:WINDOWS_CERT_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 dist\Ohayo.exe
-          signtool verify /pa dist\Ohayo.exe
+          signtool sign /f windows-cert.pfx /p $env:WINDOWS_CERT_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 dist\おはよう.exe
+          signtool verify /pa dist\おはよう.exe
       - name: Package Windows release
         shell: pwsh
         run: |
-          Compress-Archive -Path 'dist\Ohayo.exe' -DestinationPath 'dist\Ohayo-windows.zip' -Force
+          Compress-Archive -Path 'dist\おはよう.exe' -DestinationPath 'dist\おはよう-windows.zip' -Force
       - uses: actions/upload-artifact@v4
         with:
           name: ohayo-windows
-          path: dist/Ohayo-windows.zip
+          path: dist/おはよう-windows.zip
 
   release:
     needs: [determine-version, build-macos, build-windows]
@@ -174,6 +174,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release-artifacts/Ohayo-windows.zip
-          asset_name: Ohayo-windows.zip
+          asset_path: release-artifacts/おはよう-windows.zip
+          asset_name: おはよう-windows.zip
           asset_content_type: application/zip
