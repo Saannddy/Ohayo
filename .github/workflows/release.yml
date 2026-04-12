@@ -75,7 +75,7 @@ jobs:
       - name: Build macOS app
         run: |
           rm -rf build/ dist/ *.spec
-          pyinstaller --onedir --windowed --name "おはよう" --icon=icon.png app.py
+          pyinstaller --onedir --windowed --name "おはよう" --icon=images/icon.png app.py
       - name: Sign macOS app
         if: env.MACOS_SIGNING_IDENTITY != ''
         run: |
