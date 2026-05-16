@@ -32,116 +32,120 @@ FONTS = {
     "btn_sm":   (_SANS, 9),
 }
 
+# Deep midnight blue — electric night sky palette
 DARK_THEME = {
     "name": "dark",
-    # Backgrounds
-    "bg":           "#0D1117",
-    "panel_bg":     "#161B22",
-    "sidebar_bg":   "#0D1117",
-    "card_bg":      "#161B22",
-    "input_bg":     "#0D1117",
-    "log_bg":       "#0D1117",
-    # Borders
-    "input_border": "#30363D",
-    "border":       "#21262D",
-    "card_border":  "#30363D",
+    # Backgrounds — deep midnight blue
+    "bg":           "#080E1C",
+    "panel_bg":     "#0B1526",
+    "sidebar_bg":   "#060C18",
+    "card_bg":      "#0E1B30",
+    "input_bg":     "#0A1422",
+    "log_bg":       "#080E1C",
+    # Borders — subtle blue glow
+    "input_border": "#1A3058",
+    "border":       "#12284A",
+    "card_border":  "#1E3562",
     # Text
-    "fg":           "#E6EDF3",
-    "text_secondary":"#8B949E",
-    "text_muted":   "#484F58",
-    # Accent — sunrise orange/coral
-    "accent":       "#FF7043",
-    "accent_hover": "#FF5722",
-    "accent_bg":    "#1A0E09",
-    "grad_start":   "#FF6B35",
-    "grad_end":     "#F7931E",
-    # Success — spring green
-    "success":      "#56E39F",
-    "success_hover":"#3ECF8E",
-    "success_bg":   "#0A1F14",
-    # Warning
-    "warning":      "#F0A500",
-    "warning_bg":   "#1A1200",
-    # Danger
-    "danger":       "#FF4757",
-    "danger_hover": "#FF6470",
-    "danger_bg":    "#1A0808",
+    "fg":           "#E0EAFF",
+    "text_secondary":"#6080A8",
+    "text_muted":   "#2C4060",
+    # Accent — golden star (brand identity against deep blue)
+    "accent":       "#FFD166",
+    "accent_hover": "#F5B800",
+    "accent_bg":    "#1A1200",
+    # Header gradient — warm sunrise
+    "grad_start":   "#FF7B3E",
+    "grad_end":     "#F5A623",
+    # Success — aqua
+    "success":      "#4DD9C0",
+    "success_hover":"#38C5AC",
+    "success_bg":   "#091C1A",
+    # Warning — amber
+    "warning":      "#F5A623",
+    "warning_bg":   "#1A1000",
+    # Danger — soft rose
+    "danger":       "#FF6B9D",
+    "danger_hover": "#FF4B8A",
+    "danger_bg":    "#1A0810",
     # Disabled
-    "disabled":     "#21262D",
-    "disabled_fg":  "#484F58",
+    "disabled":     "#12284A",
+    "disabled_fg":  "#2C4060",
     # Scrollbar
-    "scroll_bg":    "#161B22",
-    "scroll_fg":    "#30363D",
+    "scroll_bg":    "#0B1526",
+    "scroll_fg":    "#1A3058",
     # Filter buttons
-    "filter_bg":    "#21262D",
-    "filter_act":   "#FF7043",
+    "filter_bg":    "#0E1B30",
+    "filter_act":   "#FFD166",
     # Log tag colours
-    "tag_2xx":      "#56E39F",
-    "tag_3xx":      "#F0A500",
+    "tag_2xx":      "#4DD9C0",
+    "tag_3xx":      "#F5A623",
     "tag_4xx":      "#FF9F43",
-    "tag_5xx":      "#FF4757",
-    "tag_error":    "#FF6B6B",
+    "tag_5xx":      "#FF6B9D",
+    "tag_error":    "#FF4B8A",
     "tag_info":     "#74B9FF",
-    "tag_ts":       "#484F58",
+    "tag_ts":       "#2C4060",
     "tag_method":   "#C084FC",
-    "tag_ms":       "#8B949E",
-    "cursor":       "#FF7043",
-    "sel_bg":       "#2D3748",
+    "tag_ms":       "#6080A8",
+    "cursor":       "#FFD166",
+    "sel_bg":       "#1A3058",
 }
 
+# Light morning — clean blue-white palette
 LIGHT_THEME = {
     "name": "light",
     # Backgrounds
-    "bg":           "#FFFAF0",
+    "bg":           "#EEF2FF",
     "panel_bg":     "#FFFFFF",
-    "sidebar_bg":   "#FFF6EC",
+    "sidebar_bg":   "#E4EAFF",
     "card_bg":      "#FFFFFF",
-    "input_bg":     "#FFFFFF",
-    "log_bg":       "#FAFAF7",
+    "input_bg":     "#F4F7FF",
+    "log_bg":       "#F8FAFF",
     # Borders
-    "input_border": "#DCCDB8",
-    "border":       "#EDE5D8",
-    "card_border":  "#EDE5D8",
+    "input_border": "#B8C8E8",
+    "border":       "#CAD6F0",
+    "card_border":  "#B8C8E8",
     # Text
-    "fg":           "#1A1A2E",
-    "text_secondary":"#6B7280",
-    "text_muted":   "#9CA3AF",
-    # Accent
-    "accent":       "#E8713C",
-    "accent_hover": "#D4602C",
-    "accent_bg":    "#FEF3EA",
-    "grad_start":   "#FF6B35",
-    "grad_end":     "#F7931E",
+    "fg":           "#0A1628",
+    "text_secondary":"#486080",
+    "text_muted":   "#90A8C8",
+    # Accent — warm orange-gold
+    "accent":       "#E8840A",
+    "accent_hover": "#D06800",
+    "accent_bg":    "#FEF0E0",
+    # Header gradient
+    "grad_start":   "#FF7B3E",
+    "grad_end":     "#F5A623",
     # Success
-    "success":      "#27AE60",
-    "success_hover":"#1E8449",
-    "success_bg":   "#EAFAF1",
+    "success":      "#2EAF9C",
+    "success_hover":"#259B8A",
+    "success_bg":   "#E8FAF8",
     # Warning
-    "warning":      "#D4A017",
-    "warning_bg":   "#FEF9E7",
+    "warning":      "#D4881A",
+    "warning_bg":   "#FEF4E0",
     # Danger
-    "danger":       "#E74C3C",
-    "danger_hover": "#C0392B",
-    "danger_bg":    "#FDEDEC",
+    "danger":       "#E8547A",
+    "danger_hover": "#D03D62",
+    "danger_bg":    "#FEECF1",
     # Disabled
-    "disabled":     "#D1D5DB",
-    "disabled_fg":  "#9CA3AF",
+    "disabled":     "#CAD6F0",
+    "disabled_fg":  "#90A8C8",
     # Scrollbar
-    "scroll_bg":    "#F3EDE4",
-    "scroll_fg":    "#DCCDB8",
+    "scroll_bg":    "#E4EAFF",
+    "scroll_fg":    "#B8C8E8",
     # Filter buttons
-    "filter_bg":    "#F3EDE4",
-    "filter_act":   "#E8713C",
+    "filter_bg":    "#E4EAFF",
+    "filter_act":   "#E8840A",
     # Log tag colours
-    "tag_2xx":      "#27AE60",
-    "tag_3xx":      "#D4A017",
+    "tag_2xx":      "#2EAF9C",
+    "tag_3xx":      "#D4881A",
     "tag_4xx":      "#E67E22",
-    "tag_5xx":      "#E74C3C",
+    "tag_5xx":      "#E8547A",
     "tag_error":    "#C0392B",
     "tag_info":     "#2980B9",
-    "tag_ts":       "#9CA3AF",
+    "tag_ts":       "#90A8C8",
     "tag_method":   "#7C3AED",
-    "tag_ms":       "#6B7280",
-    "cursor":       "#E8713C",
-    "sel_bg":       "#FDEBD0",
+    "tag_ms":       "#486080",
+    "cursor":       "#E8840A",
+    "sel_bg":       "#C8DCFF",
 }
