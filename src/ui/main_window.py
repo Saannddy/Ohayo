@@ -1,4 +1,4 @@
-"""ui/main_window.py — Ohayo CustomTkinter UI."""
+"""ui/main_window.py — Ohayo CustomTkinter UI with auto theme + send modes."""
 
 import os
 import tkinter as tk
@@ -7,14 +7,14 @@ from datetime import datetime
 
 import customtkinter as ctk
 
-from theme.themes import DARK_THEME, LIGHT_THEME
+from theme.themes import DARK_THEME, LIGHT_THEME, T
 from core.scheduler import Scheduler
 from core.profiles import (get_profile_names, save_profile,
                             load_profile, delete_profile)
 from ui.widgets import StarField, AnimatedDot
 
 try:
-    from PIL import Image, ImageTk
+    from PIL import Image
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
@@ -23,19 +23,35 @@ _METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"]
 _ICON_PATH = os.path.join(os.path.dirname(__file__),
                           "..", "..", "images", "icon.png")
 
+MODE_SINGLE     = "single"
+MODE_COUNT      = "count"
+MODE_CONTINUOUS = "continuous"
+_MODES = [
+    ("⚡", "Once",       MODE_SINGLE),
+    ("🔁", "Repeat N",   MODE_COUNT),
+    ("♾",  "Continuous", MODE_CONTINUOUS),
+]
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+
 
 class MainWindow:
     def __init__(self):
-        self._t = DARK_THEME
+        self._is_dark = True
         self._scheduler = Scheduler()
         self._log_filter = "ALL"
         self._is_running = False
         self._stored_headers: dict = {}
         self._stored_body: str = ""
         self._profile_widgets: list = []
+        self._mode = MODE_CONTINUOUS
+        self._mode_buttons: dict = {}
+        self._filter_btns: dict = {}
+        self._tk_bg_widgets: list = []
+        self._tk_card_bg_widgets: list = []
         self._hero_img = None
         self._sb_icon_img = None
-        self._filter_btns: dict = {}
 
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
@@ -45,15 +61,16 @@ class MainWindow:
         self._load_images()
         self._build_ui()
         self._wire_scheduler()
+        self._update_mode_ui()
 
     # ── bootstrap ──────────────────────────────────────────────────────────────
 
     def _setup_window(self):
         r = self._root
         r.title("おはよう — The API Waker")
-        r.geometry("1180x760")
-        r.minsize(940, 640)
-        r.configure(fg_color=self._t["bg"])
+        r.geometry("1240x800")
+        r.minsize(1020, 680)
+        r.configure(fg_color=T("bg"))
         try:
             img = tk.PhotoImage(file=_ICON_PATH)
             r.iconphoto(True, img)
@@ -64,9 +81,9 @@ class MainWindow:
         if not HAS_PIL:
             return
         try:
-            im = Image.open(_ICON_PATH).convert("RGBA")
-            self._hero_img    = ImageTk.PhotoImage(im.resize((68, 68),  Image.LANCZOS))
-            self._sb_icon_img = ImageTk.PhotoImage(im.resize((34, 34),  Image.LANCZOS))
+            pil = Image.open(_ICON_PATH).convert("RGBA")
+            self._hero_img    = ctk.CTkImage(light_image=pil, dark_image=pil, size=(72, 72))
+            self._sb_icon_img = ctk.CTkImage(light_image=pil, dark_image=pil, size=(40, 40))
         except Exception:
             pass
 
@@ -77,404 +94,463 @@ class MainWindow:
     # ── sidebar ────────────────────────────────────────────────────────────────
 
     def _build_sidebar(self):
-        t = self._t
-
-        self._sidebar = ctk.CTkFrame(self._root, width=230,
-                                      fg_color=t["sidebar_bg"], corner_radius=0)
+        self._sidebar = ctk.CTkFrame(self._root, width=236,
+                                      fg_color=T("sidebar_bg"), corner_radius=0)
         self._sidebar.pack(side=tk.LEFT, fill=tk.Y)
         self._sidebar.pack_propagate(False)
 
-        # Separator line
         self._sb_sep = ctk.CTkFrame(self._root, width=1,
-                                     fg_color=t["border"], corner_radius=0)
+                                     fg_color=T("border"), corner_radius=0)
         self._sb_sep.pack(side=tk.LEFT, fill=tk.Y)
 
-        # Brand
+        # Brand block
         brand = ctk.CTkFrame(self._sidebar, fg_color="transparent")
-        brand.pack(fill=tk.X, padx=20, pady=(22, 8))
-        self._sb_brand = brand
+        brand.pack(fill=tk.X, padx=22, pady=(24, 12))
 
         if self._sb_icon_img:
-            self._sb_icon_lbl = tk.Label(brand, image=self._sb_icon_img,
-                                          bg=t["sidebar_bg"], bd=0)
-            self._sb_icon_lbl.pack(anchor="w", pady=(0, 10))
-        else:
-            self._sb_icon_lbl = None
+            ctk.CTkLabel(brand, image=self._sb_icon_img, text="").pack(
+                anchor="w", pady=(0, 12))
 
-        self._sb_title = ctk.CTkLabel(brand, text="おはよう",
-                                       font=(None, 22, "bold"),
-                                       text_color=t["accent"])
-        self._sb_title.pack(anchor="w")
+        ctk.CTkLabel(brand, text="おはよう",
+                     font=(None, 24, "bold"),
+                     text_color=T("accent")).pack(anchor="w")
 
-        self._sb_sub = ctk.CTkLabel(brand, text="API Waker",
-                                     font=(None, 9),
-                                     text_color=t["text_secondary"])
-        self._sb_sub.pack(anchor="w", pady=(1, 0))
+        ctk.CTkLabel(brand, text="API Waker · v2",
+                     font=(None, 9),
+                     text_color=T("text_secondary")).pack(anchor="w",
+                                                           pady=(2, 0))
 
-        # Divider
-        self._sb_div1 = ctk.CTkFrame(self._sidebar, height=1,
-                                      fg_color=t["border"], corner_radius=0)
-        self._sb_div1.pack(fill=tk.X, padx=16, pady=(10, 14))
+        ctk.CTkFrame(self._sidebar, height=1,
+                      fg_color=T("border"), corner_radius=0).pack(
+            fill=tk.X, padx=18, pady=(14, 16))
 
         # Profiles header
         phdr = ctk.CTkFrame(self._sidebar, fg_color="transparent")
-        phdr.pack(fill=tk.X, padx=20)
-        self._sb_phdr = phdr
+        phdr.pack(fill=tk.X, padx=22)
 
-        self._sb_plbl = ctk.CTkLabel(phdr, text="SAVED PROFILES",
-                                      font=(None, 8, "bold"),
-                                      text_color=t["text_muted"])
-        self._sb_plbl.pack(anchor="w", pady=(0, 8))
+        ctk.CTkLabel(phdr, text="SAVED PROFILES",
+                     font=(None, 8, "bold"),
+                     text_color=T("text_muted")).pack(side=tk.LEFT,
+                                                       pady=(0, 8))
 
         # Scrollable profile list
         self._prof_scroll = ctk.CTkScrollableFrame(
             self._sidebar,
             fg_color="transparent",
-            scrollbar_fg_color=t["sidebar_bg"],
-            scrollbar_button_color=t["scroll_fg"],
-            scrollbar_button_hover_color=t["accent"],
+            scrollbar_fg_color=T("sidebar_bg"),
+            scrollbar_button_color=T("scroll_fg"),
+            scrollbar_button_hover_color=T("accent"),
             corner_radius=0,
         )
-        self._prof_scroll.pack(fill=tk.BOTH, expand=True, padx=8)
+        self._prof_scroll.pack(fill=tk.BOTH, expand=True, padx=10)
 
-        # Bottom area (packed from bottom)
-        self._sb_div2 = ctk.CTkFrame(self._sidebar, height=1,
-                                      fg_color=t["border"], corner_radius=0)
-        self._sb_div2.pack(fill=tk.X, padx=16, side=tk.BOTTOM)
+        # Bottom controls
+        ctk.CTkFrame(self._sidebar, height=1,
+                      fg_color=T("border"), corner_radius=0).pack(
+            fill=tk.X, padx=18, side=tk.BOTTOM)
 
         bottom = ctk.CTkFrame(self._sidebar, fg_color="transparent")
-        bottom.pack(fill=tk.X, padx=16, pady=14, side=tk.BOTTOM)
-        self._sb_bottom = bottom
+        bottom.pack(fill=tk.X, padx=18, pady=16, side=tk.BOTTOM)
 
-        self._save_prof_btn = ctk.CTkButton(
-            bottom, text="＋  Save Profile",
-            command=self._save_profile,
-            fg_color=t["filter_bg"], hover_color=t["card_border"],
-            text_color=t["text_secondary"],
-            font=(None, 10, "bold"),
-            height=34, corner_radius=8,
-        )
-        self._save_prof_btn.pack(fill=tk.X, pady=(0, 10))
+        ctk.CTkButton(bottom, text="＋  Save Profile",
+                      command=self._save_profile,
+                      fg_color=T("filter_bg"),
+                      hover_color=T("card_border"),
+                      text_color=T("text_secondary"),
+                      font=(None, 10, "bold"),
+                      height=36, corner_radius=10).pack(fill=tk.X,
+                                                         pady=(0, 12))
 
         theme_row = ctk.CTkFrame(bottom, fg_color="transparent")
         theme_row.pack(fill=tk.X)
-        self._sb_theme_row = theme_row
 
-        self._theme_lbl = ctk.CTkLabel(theme_row, text="Theme",
-                                        font=(None, 9),
-                                        text_color=t["text_secondary"])
-        self._theme_lbl.pack(side=tk.LEFT)
+        ctk.CTkLabel(theme_row, text="Theme",
+                     font=(None, 9),
+                     text_color=T("text_secondary")).pack(side=tk.LEFT)
 
-        self._theme_btn = ctk.CTkLabel(theme_row, text="☀️",
-                                        font=(None, 15), cursor="hand2",
-                                        text_color=t["fg"])
-        self._theme_btn.pack(side=tk.RIGHT)
-        self._theme_btn.bind("<Button-1>", lambda _: self._toggle_theme())
+        self._theme_switch = ctk.CTkSwitch(
+            theme_row, text="",
+            command=self._toggle_theme,
+            width=46, height=22,
+            switch_width=42, switch_height=22,
+            progress_color=T("accent"),
+            button_color=T("fg"),
+            button_hover_color=T("accent_hover"),
+            fg_color=T("filter_bg"),
+        )
+        self._theme_switch.pack(side=tk.RIGHT)
 
         self._refresh_profiles_list()
 
-    # ── content ────────────────────────────────────────────────────────────────
+    # ── content area ───────────────────────────────────────────────────────────
 
     def _build_content(self):
-        t = self._t
-
-        # Plain tk.Frame hosts the starfield canvas
-        self._content_wrap = tk.Frame(self._root, bg=t["bg"])
+        # tk.Frame hosts the starfield Canvas. bg gets refreshed on theme switch.
+        self._content_wrap = tk.Frame(self._root, bg=DARK_THEME["bg"])
         self._content_wrap.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self._tk_bg_widgets.append(self._content_wrap)
 
-        self._stars = StarField(self._content_wrap, theme=t, num_stars=110, seed=7)
+        self._stars = StarField(self._content_wrap,
+                                 theme=DARK_THEME, num_stars=110, seed=7)
         self._stars.place(x=0, y=0, relwidth=1, relheight=1)
 
-        cols_holder = tk.Frame(self._content_wrap, bg=t["bg"])
-        cols_holder.place(x=16, y=16, relwidth=1, relheight=1, width=-32, height=-32)
-        self._cols_holder = cols_holder
+        cols_holder = tk.Frame(self._content_wrap, bg=DARK_THEME["bg"])
+        cols_holder.place(x=18, y=18, relwidth=1, relheight=1,
+                          width=-36, height=-36)
         cols_holder.lift()
+        self._tk_bg_widgets.append(cols_holder)
 
-        left_col = tk.Frame(cols_holder, bg=t["bg"])
-        left_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 6))
+        left_col = tk.Frame(cols_holder, bg=DARK_THEME["bg"])
+        left_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 9))
+        self._tk_bg_widgets.append(left_col)
         self._left_col = left_col
 
-        right_col = tk.Frame(cols_holder, bg=t["bg"])
-        right_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(6, 0))
+        right_col = tk.Frame(cols_holder, bg=DARK_THEME["bg"])
+        right_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(9, 0))
+        self._tk_bg_widgets.append(right_col)
         self._right_col = right_col
 
         self._build_wakeup_panel()
         self._build_activity_panel()
 
-    # ── Wake Up panel ──────────────────────────────────────────────────────────
+    # ── Wake Up card ───────────────────────────────────────────────────────────
 
     def _build_wakeup_panel(self):
-        t = self._t
-
         self._wu_card = ctk.CTkFrame(self._left_col,
-                                      fg_color=t["card_bg"], corner_radius=20,
-                                      border_width=1, border_color=t["card_border"])
+                                      fg_color=T("card_bg"),
+                                      corner_radius=22,
+                                      border_width=1,
+                                      border_color=T("card_border"))
         self._wu_card.pack(fill=tk.BOTH, expand=True)
 
+        ctk.CTkFrame(self._wu_card, fg_color=T("accent"),
+                      height=3, corner_radius=0).pack(fill=tk.X, padx=22)
+
         pad = ctk.CTkFrame(self._wu_card, fg_color="transparent")
-        pad.pack(fill=tk.BOTH, expand=True, padx=26, pady=22)
-        self._wu_pad = pad
+        pad.pack(fill=tk.BOTH, expand=True, padx=28, pady=(20, 24))
 
         # Hero row
         hero = ctk.CTkFrame(pad, fg_color="transparent")
-        hero.pack(fill=tk.X, pady=(0, 18))
+        hero.pack(fill=tk.X, pady=(0, 20))
 
         if self._hero_img:
-            self._wu_icon_lbl = tk.Label(hero, image=self._hero_img,
-                                          bg=t["card_bg"], bd=0)
-            self._wu_icon_lbl.pack(side=tk.LEFT, padx=(0, 18))
-        else:
-            self._wu_icon_lbl = None
+            ctk.CTkLabel(hero, image=self._hero_img, text="").pack(
+                side=tk.LEFT, padx=(0, 18))
 
         tcol = ctk.CTkFrame(hero, fg_color="transparent")
         tcol.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        self._wu_title = ctk.CTkLabel(tcol, text="Wake Up API",
-                                       font=(None, 24, "bold"),
-                                       text_color=t["fg"])
-        self._wu_title.pack(anchor="w")
+        ctk.CTkLabel(tcol, text="Wake Up API",
+                     font=(None, 26, "bold"),
+                     text_color=T("fg")).pack(anchor="w")
 
-        self._wu_sub = ctk.CTkLabel(tcol, text="Schedule HTTP requests on repeat",
-                                     font=(None, 10),
-                                     text_color=t["text_secondary"])
-        self._wu_sub.pack(anchor="w", pady=(3, 0))
+        ctk.CTkLabel(tcol, text="Schedule HTTP requests your way",
+                     font=(None, 10),
+                     text_color=T("text_secondary")).pack(anchor="w",
+                                                           pady=(3, 0))
+
+        # Mode selector
+        ctk.CTkLabel(pad, text="SEND MODE",
+                     font=(None, 8, "bold"),
+                     text_color=T("text_secondary"),
+                     anchor="w").pack(fill=tk.X, pady=(0, 6))
+
+        mode_row = ctk.CTkFrame(pad, fg_color="transparent")
+        mode_row.pack(fill=tk.X, pady=(0, 18))
+        for i, (icon, label, value) in enumerate(_MODES):
+            mode_row.columnconfigure(i, weight=1)
+            btn = ctk.CTkButton(
+                mode_row, text=f"{icon}  {label}",
+                command=lambda v=value: self._set_mode(v),
+                font=(None, 11, "bold"),
+                height=42, corner_radius=10,
+                fg_color=T("filter_bg"),
+                hover_color=T("border"),
+                text_color=T("text_secondary"),
+                border_width=1,
+                border_color=T("input_border"),
+            )
+            btn.grid(row=0, column=i, padx=(0 if i == 0 else 6, 0), sticky="ew")
+            self._mode_buttons[value] = btn
 
         # URL
-        ctk.CTkLabel(pad, text="TARGET URL", font=(None, 9, "bold"),
-                     text_color=t["text_secondary"], anchor="w").pack(
-            fill=tk.X, pady=(0, 4))
+        ctk.CTkLabel(pad, text="TARGET URL",
+                     font=(None, 8, "bold"),
+                     text_color=T("text_secondary"),
+                     anchor="w").pack(fill=tk.X, pady=(0, 4))
 
         self._url_entry = ctk.CTkEntry(
             pad,
             placeholder_text="https://example.com/api/ping",
-            fg_color=t["input_bg"], border_color=t["input_border"],
-            text_color=t["fg"], placeholder_text_color=t["text_muted"],
-            font=(None, 11), height=42, corner_radius=8, border_width=1,
+            fg_color=T("input_bg"),
+            border_color=T("input_border"),
+            text_color=T("fg"),
+            placeholder_text_color=T("text_muted"),
+            font=(None, 12), height=46, corner_radius=10, border_width=1,
         )
-        self._url_entry.pack(fill=tk.X, pady=(0, 14))
+        self._url_entry.pack(fill=tk.X, pady=(0, 16))
 
-        # Timing row
-        timing = ctk.CTkFrame(pad, fg_color="transparent")
-        timing.pack(fill=tk.X, pady=(0, 14))
-        timing.columnconfigure(0, weight=2, minsize=110)
-        timing.columnconfigure(1, weight=1, minsize=88)
-        timing.columnconfigure(2, weight=1, minsize=88)
+        # Timing row (conditional based on mode)
+        self._timing_holder = ctk.CTkFrame(pad, fg_color="transparent")
+        self._timing_holder.pack(fill=tk.X, pady=(0, 16))
 
-        # Method
-        mc = ctk.CTkFrame(timing, fg_color="transparent")
-        mc.grid(row=0, column=0, padx=(0, 8), sticky="nsew")
-        ctk.CTkLabel(mc, text="METHOD", font=(None, 9, "bold"),
-                     text_color=t["text_secondary"], anchor="w").pack(
-            fill=tk.X, pady=(0, 4))
-        self._method_var = tk.StringVar(value="GET")
-        self._method_cb = ctk.CTkComboBox(
-            mc, variable=self._method_var, values=_METHODS,
-            fg_color=t["input_bg"], border_color=t["input_border"],
-            button_color=t["input_bg"], button_hover_color=t["card_border"],
-            dropdown_fg_color=t["card_bg"],
-            dropdown_hover_color=t["filter_bg"],
-            text_color=t["fg"], font=(None, 11, "bold"),
-            height=40, corner_radius=8, state="readonly",
-        )
-        self._method_cb.pack(fill=tk.X)
-
-        # Interval
-        ic = ctk.CTkFrame(timing, fg_color="transparent")
-        ic.grid(row=0, column=1, padx=(0, 8), sticky="nsew")
-        ctk.CTkLabel(ic, text="EVERY (s)", font=(None, 9, "bold"),
-                     text_color=t["text_secondary"], anchor="w").pack(
-            fill=tk.X, pady=(0, 4))
-        self._interval_entry = ctk.CTkEntry(
-            ic, placeholder_text="5",
-            fg_color=t["input_bg"], border_color=t["input_border"],
-            text_color=t["fg"], placeholder_text_color=t["text_muted"],
-            font=(None, 11), height=40, corner_radius=8, border_width=1,
-        )
-        self._interval_entry.pack(fill=tk.X)
-
-        # Stop time
-        sc = ctk.CTkFrame(timing, fg_color="transparent")
-        sc.grid(row=0, column=2, sticky="nsew")
-        ctk.CTkLabel(sc, text="UNTIL  HH:MM", font=(None, 9, "bold"),
-                     text_color=t["text_secondary"], anchor="w").pack(
-            fill=tk.X, pady=(0, 4))
-        self._stop_entry = ctk.CTkEntry(
-            sc, placeholder_text="23:59",
-            fg_color=t["input_bg"], border_color=t["input_border"],
-            text_color=t["fg"], placeholder_text_color=t["text_muted"],
-            font=(None, 11), height=40, corner_radius=8, border_width=1,
-        )
-        self._stop_entry.pack(fill=tk.X)
+        self._mc_col = self._make_field("METHOD", combo=True)
+        self._ic_col = self._make_field("EVERY (s)", placeholder="5")
+        self._sc_col = self._make_field("UNTIL  HH:MM", placeholder="23:59")
+        self._cc_col = self._make_field("COUNT (N)", placeholder="10")
 
         # Extras
         extras = ctk.CTkFrame(pad, fg_color="transparent")
-        extras.pack(fill=tk.X, pady=(0, 18))
+        extras.pack(fill=tk.X, pady=(0, 20))
 
         self._headers_btn = ctk.CTkLabel(extras, text="✎  Headers",
                                           font=(None, 10),
-                                          text_color=t["text_secondary"],
+                                          text_color=T("text_secondary"),
                                           cursor="hand2")
         self._headers_btn.pack(side=tk.LEFT, padx=(0, 20))
-        self._headers_btn.bind("<Button-1>", lambda _: self._open_headers_dialog())
+        self._headers_btn.bind("<Button-1>",
+                                lambda _: self._open_headers_dialog())
 
         self._body_btn = ctk.CTkLabel(extras, text="✎  Body",
                                        font=(None, 10),
-                                       text_color=t["text_secondary"],
+                                       text_color=T("text_secondary"),
                                        cursor="hand2")
         self._body_btn.pack(side=tk.LEFT)
-        self._body_btn.bind("<Button-1>", lambda _: self._open_body_dialog())
+        self._body_btn.bind("<Button-1>",
+                             lambda _: self._open_body_dialog())
 
         # Wake button
         self._wake_btn = ctk.CTkButton(
             pad, text="▶   WAKE UP API",
             command=self._on_wake_click,
-            fg_color=t["accent"], hover_color=t["accent_hover"],
-            text_color=t["bg"], font=(None, 14, "bold"),
-            height=52, corner_radius=12,
+            fg_color=T("accent"), hover_color=T("accent_hover"),
+            text_color=T("bg"), font=(None, 14, "bold"),
+            height=54, corner_radius=14,
         )
-        self._wake_btn.pack(fill=tk.X, pady=(0, 14))
+        self._wake_btn.pack(fill=tk.X, pady=(0, 16))
 
         # Status row
         st_row = ctk.CTkFrame(pad, fg_color="transparent")
-        st_row.pack(fill=tk.X, pady=(0, 8))
-        self._wu_st_row = st_row
+        st_row.pack(fill=tk.X, pady=(0, 10))
 
-        self._wu_dot = AnimatedDot(st_row, color=t["text_muted"],
-                                    size=10, bg=t["card_bg"])
-        self._wu_dot.pack(side=tk.LEFT, padx=(0, 8))
+        self._wu_dot = AnimatedDot(st_row, color=DARK_THEME["text_muted"],
+                                    size=10, bg=DARK_THEME["card_bg"])
+        self._wu_dot.pack(side=tk.LEFT, padx=(0, 10))
+        self._tk_card_bg_widgets.append(self._wu_dot)
 
         self._wu_status = ctk.CTkLabel(st_row, text="Ready to wake up an API.",
                                         font=(None, 10),
-                                        text_color=t["text_secondary"])
+                                        text_color=T("text_secondary"))
         self._wu_status.pack(side=tk.LEFT)
 
-        # Progress bar
         self._wu_bar = ctk.CTkProgressBar(pad,
-                                           fg_color=t["filter_bg"],
-                                           progress_color=t["accent"],
-                                           height=5, corner_radius=3)
+                                           fg_color=T("filter_bg"),
+                                           progress_color=T("accent"),
+                                           height=6, corner_radius=3)
         self._wu_bar.pack(fill=tk.X)
         self._wu_bar.set(0)
 
-    # ── Activity panel ─────────────────────────────────────────────────────────
+    def _make_field(self, label, placeholder="", combo=False):
+        """Build a labelled input column (frame containing label + input)."""
+        col = ctk.CTkFrame(self._timing_holder, fg_color="transparent")
+        ctk.CTkLabel(col, text=label, font=(None, 8, "bold"),
+                     text_color=T("text_secondary"), anchor="w").pack(
+            fill=tk.X, pady=(0, 4))
+        if combo:
+            self._method_var = tk.StringVar(value="GET")
+            self._method_cb = ctk.CTkComboBox(
+                col, variable=self._method_var, values=_METHODS,
+                fg_color=T("input_bg"),
+                border_color=T("input_border"),
+                button_color=T("input_bg"),
+                button_hover_color=T("card_border"),
+                dropdown_fg_color=T("card_bg"),
+                dropdown_hover_color=T("filter_bg"),
+                text_color=T("fg"),
+                font=(None, 11, "bold"),
+                height=42, corner_radius=10, state="readonly",
+            )
+            self._method_cb.pack(fill=tk.X)
+        else:
+            entry = ctk.CTkEntry(
+                col, placeholder_text=placeholder,
+                fg_color=T("input_bg"), border_color=T("input_border"),
+                text_color=T("fg"), placeholder_text_color=T("text_muted"),
+                font=(None, 11), height=42, corner_radius=10, border_width=1,
+            )
+            entry.pack(fill=tk.X)
+            col._entry = entry  # type: ignore
+            if label == "EVERY (s)":
+                self._interval_entry = entry
+            elif label == "UNTIL  HH:MM":
+                self._stop_entry = entry
+            elif label == "COUNT (N)":
+                self._count_entry = entry
+        return col
+
+    # ── Activity card ──────────────────────────────────────────────────────────
 
     def _build_activity_panel(self):
-        t = self._t
-
         self._act_card = ctk.CTkFrame(self._right_col,
-                                       fg_color=t["card_bg"], corner_radius=20,
-                                       border_width=1, border_color=t["card_border"])
+                                       fg_color=T("card_bg"),
+                                       corner_radius=22,
+                                       border_width=1,
+                                       border_color=T("card_border"))
         self._act_card.pack(fill=tk.BOTH, expand=True)
 
+        ctk.CTkFrame(self._act_card, fg_color=T("success"),
+                      height=3, corner_radius=0).pack(fill=tk.X, padx=22)
+
         wrap = ctk.CTkFrame(self._act_card, fg_color="transparent")
-        wrap.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
-        self._act_wrap = wrap
+        wrap.pack(fill=tk.BOTH, expand=True, padx=22, pady=(20, 22))
 
         # Title row
         trow = ctk.CTkFrame(wrap, fg_color="transparent")
-        trow.pack(fill=tk.X, pady=(0, 14))
+        trow.pack(fill=tk.X, pady=(0, 16))
 
-        self._act_title = ctk.CTkLabel(trow, text="Activity",
-                                        font=(None, 20, "bold"),
-                                        text_color=t["fg"])
-        self._act_title.pack(side=tk.LEFT)
+        ctk.CTkLabel(trow, text="Activity",
+                     font=(None, 22, "bold"),
+                     text_color=T("fg")).pack(side=tk.LEFT)
 
         self._export_btn = ctk.CTkButton(
             trow, text="⬇ Export", command=self._export_log,
-            fg_color=t["filter_bg"], hover_color=t["border"],
-            text_color=t["text_secondary"], font=(None, 9, "bold"),
-            width=80, height=28, corner_radius=6,
+            fg_color=T("filter_bg"), hover_color=T("border"),
+            text_color=T("text_secondary"), font=(None, 9, "bold"),
+            width=84, height=30, corner_radius=8,
         )
-        self._export_btn.pack(side=tk.RIGHT, padx=(4, 0))
+        self._export_btn.pack(side=tk.RIGHT, padx=(6, 0))
 
         self._clear_btn = ctk.CTkButton(
             trow, text="🗑 Clear", command=self._on_clear,
-            fg_color=t["filter_bg"], hover_color=t["border"],
-            text_color=t["text_secondary"], font=(None, 9, "bold"),
-            width=80, height=28, corner_radius=6,
+            fg_color=T("filter_bg"), hover_color=T("border"),
+            text_color=T("text_secondary"), font=(None, 9, "bold"),
+            width=84, height=30, corner_radius=8,
         )
-        self._clear_btn.pack(side=tk.RIGHT, padx=(4, 0))
+        self._clear_btn.pack(side=tk.RIGHT, padx=(6, 0))
 
-        # Stats
+        # Stats grid
         stats_frame = ctk.CTkFrame(wrap, fg_color="transparent")
-        stats_frame.pack(fill=tk.X, pady=(0, 14))
-        self._act_stats = stats_frame
+        stats_frame.pack(fill=tk.X, pady=(0, 16))
 
-        specs = [("Total", "—", t["accent"]),
-                 ("Success", "—%", t["success"]),
-                 ("Avg", "—ms", t["warning"]),
-                 ("Status", "—", t["text_secondary"])]
-        self._stat_cards: list[dict] = []
-        for i, (lbl, val, col) in enumerate(specs):
-            card = self._make_stat_card(stats_frame, lbl, val, col, t)
+        specs = [("🎯", "Total",   "—",   T("accent")),
+                 ("✓",  "Success", "—%",  T("success")),
+                 ("⏱",  "Avg",     "—ms", T("warning")),
+                 ("📡", "Status",  "—",   T("text_secondary"))]
+        self._stat_cards: list = []
+        for i, (icon, lbl, val, col) in enumerate(specs):
+            card = self._make_stat_card(stats_frame, icon, lbl, val, col)
             card["frame"].grid(row=0, column=i,
-                               padx=(0 if i == 0 else 6, 0), sticky="nsew")
+                               padx=(0 if i == 0 else 8, 0), sticky="nsew")
             stats_frame.columnconfigure(i, weight=1)
             self._stat_cards.append(card)
 
-        # Filter buttons
+        # Filter pills
         frow = ctk.CTkFrame(wrap, fg_color="transparent")
-        frow.pack(fill=tk.X, pady=(0, 10))
-        self._filter_btns = {}
+        frow.pack(fill=tk.X, pady=(0, 12))
         for fname in ["ALL", "2xx", "3xx", "4xx", "5xx", "ERR"]:
             is_active = (fname == "ALL")
             btn = ctk.CTkButton(
                 frow, text=fname,
                 command=lambda f=fname: self._on_filter(f),
-                fg_color=t["filter_act"] if is_active else t["filter_bg"],
-                hover_color=t["accent_hover"] if is_active else t["border"],
-                text_color=t["bg"] if is_active else t["text_secondary"],
+                fg_color=T("filter_act") if is_active else T("filter_bg"),
+                hover_color=T("accent_hover") if is_active else T("border"),
+                text_color=T("bg") if is_active else T("text_secondary"),
                 font=(None, 9, "bold"),
-                width=46, height=26, corner_radius=6,
+                width=50, height=28, corner_radius=8,
             )
-            btn.pack(side=tk.LEFT, padx=(0, 4))
+            btn.pack(side=tk.LEFT, padx=(0, 5))
             self._filter_btns[fname] = btn
 
         # Log textbox
         self._log = ctk.CTkTextbox(
             wrap,
-            fg_color=t["log_bg"],
-            text_color=t["fg"],
-            font=("Courier", 9),
-            corner_radius=10,
+            fg_color=T("log_bg"),
+            text_color=T("fg"),
+            font=("Courier", 10),
+            corner_radius=12,
             border_width=1,
-            border_color=t["card_border"],
-            scrollbar_button_color=t["scroll_fg"],
-            scrollbar_button_hover_color=t["accent"],
+            border_color=T("card_border"),
+            scrollbar_button_color=T("scroll_fg"),
+            scrollbar_button_hover_color=T("accent"),
             state="disabled",
             wrap="word",
         )
         self._log.pack(fill=tk.BOTH, expand=True)
 
+        self._refresh_log_tags()
+
+    def _refresh_log_tags(self):
         tb = self._log._textbox
+        theme = DARK_THEME if self._is_dark else LIGHT_THEME
         for tag in ("2xx", "3xx", "4xx", "5xx", "error",
                     "info", "ts", "method", "ms"):
-            tb.tag_config(tag, foreground=t[f"tag_{tag}"])
+            tb.tag_config(tag, foreground=theme[f"tag_{tag}"])
 
-    def _make_stat_card(self, parent, label, value, color, t) -> dict:
-        frame = ctk.CTkFrame(parent, fg_color=t["input_bg"],
-                              corner_radius=10, border_width=0)
-        bar = ctk.CTkFrame(frame, fg_color=color, height=3, corner_radius=0)
-        bar.pack(fill=tk.X)
+    def _make_stat_card(self, parent, icon, label, value, color) -> dict:
+        frame = ctk.CTkFrame(parent, fg_color=T("input_bg"),
+                              corner_radius=12, border_width=0)
+        ctk.CTkFrame(frame, fg_color=color, height=3,
+                     corner_radius=0).pack(fill=tk.X)
         body = ctk.CTkFrame(frame, fg_color="transparent")
-        body.pack(fill=tk.X, padx=10, pady=8)
+        body.pack(fill=tk.X, padx=12, pady=10)
+
+        head_row = ctk.CTkFrame(body, fg_color="transparent")
+        head_row.pack(fill=tk.X)
+        ctk.CTkLabel(head_row, text=icon, font=(None, 11),
+                     text_color=color).pack(side=tk.LEFT, padx=(0, 6))
+        ctk.CTkLabel(head_row, text=label, font=(None, 8, "bold"),
+                     text_color=T("text_secondary")).pack(side=tk.LEFT)
+
         val_var = tk.StringVar(value=value)
-        val_lbl = ctk.CTkLabel(body, textvariable=val_var,
-                                font=(None, 20, "bold"), text_color=color)
-        val_lbl.pack(anchor="w")
-        name_lbl = ctk.CTkLabel(body, text=label, font=(None, 8),
-                                  text_color=t["text_secondary"])
-        name_lbl.pack(anchor="w")
-        return {
-            "frame": frame, "bar": bar, "body": body,
-            "val_var": val_var, "val_lbl": val_lbl, "name_lbl": name_lbl,
-            "color": color,
-        }
+        ctk.CTkLabel(body, textvariable=val_var,
+                     font=(None, 22, "bold"),
+                     text_color=color).pack(anchor="w", pady=(4, 0))
+        return {"frame": frame, "val_var": val_var, "color": color}
+
+    # ── Mode handling ──────────────────────────────────────────────────────────
+
+    def _set_mode(self, mode: str):
+        self._mode = mode
+        self._update_mode_ui()
+
+    def _update_mode_ui(self):
+        # Update mode button styles
+        for value, btn in self._mode_buttons.items():
+            active = (value == self._mode)
+            btn.configure(
+                fg_color=T("accent") if active else T("filter_bg"),
+                hover_color=T("accent_hover") if active else T("border"),
+                text_color=T("bg") if active else T("text_secondary"),
+                border_color=T("accent") if active else T("input_border"),
+            )
+
+        # Remove all timing columns from grid
+        for col in (self._mc_col, self._ic_col, self._sc_col, self._cc_col):
+            col.grid_forget()
+        for c in range(4):
+            self._timing_holder.columnconfigure(c, weight=0, minsize=0)
+
+        # Always show method first
+        self._timing_holder.columnconfigure(0, weight=2, minsize=110)
+
+        if self._mode == MODE_SINGLE:
+            self._mc_col.grid(row=0, column=0, sticky="ew")
+        elif self._mode == MODE_COUNT:
+            self._timing_holder.columnconfigure(1, weight=1, minsize=80)
+            self._timing_holder.columnconfigure(2, weight=1, minsize=80)
+            self._mc_col.grid(row=0, column=0, padx=(0, 8), sticky="ew")
+            self._ic_col.grid(row=0, column=1, padx=(0, 8), sticky="ew")
+            self._cc_col.grid(row=0, column=2, sticky="ew")
+        else:  # continuous
+            self._timing_holder.columnconfigure(1, weight=1, minsize=80)
+            self._timing_holder.columnconfigure(2, weight=1, minsize=80)
+            self._mc_col.grid(row=0, column=0, padx=(0, 8), sticky="ew")
+            self._ic_col.grid(row=0, column=1, padx=(0, 8), sticky="ew")
+            self._sc_col.grid(row=0, column=2, sticky="ew")
 
     # ── sidebar profiles ───────────────────────────────────────────────────────
 
     def _refresh_profiles_list(self):
-        t = self._t
         for w in self._profile_widgets:
             try:
                 w.destroy()
@@ -487,7 +563,8 @@ class MainWindow:
             lbl = ctk.CTkLabel(
                 self._prof_scroll,
                 text="No profiles yet.\n\nConfigure a request\nand click  ＋ Save.",
-                font=(None, 9), text_color=t["text_muted"], justify="center",
+                font=(None, 9), text_color=T("text_muted"),
+                justify="center",
             )
             lbl.pack(fill=tk.X, padx=8, pady=20)
             self._profile_widgets.append(lbl)
@@ -496,40 +573,44 @@ class MainWindow:
         for name in names:
             data = load_profile(name)
             item = self._build_profile_item(name, data)
-            item.pack(fill=tk.X, pady=(0, 4), padx=2)
+            item.pack(fill=tk.X, pady=(0, 5), padx=2)
             self._profile_widgets.append(item)
 
     def _build_profile_item(self, name: str, data: dict) -> ctk.CTkFrame:
-        t = self._t
-        norm_bg  = t["card_bg"]
-        hover_bg = t["filter_bg"]
-
-        outer = ctk.CTkFrame(self._prof_scroll, fg_color=norm_bg,
-                              corner_radius=8, cursor="hand2")
+        outer = ctk.CTkFrame(self._prof_scroll, fg_color=T("card_bg"),
+                              corner_radius=10, cursor="hand2",
+                              border_width=1, border_color=T("card_border"))
 
         inner = ctk.CTkFrame(outer, fg_color="transparent")
-        inner.pack(fill=tk.X, padx=12, pady=9)
+        inner.pack(fill=tk.X, padx=12, pady=10)
 
         row1 = ctk.CTkFrame(inner, fg_color="transparent")
         row1.pack(fill=tk.X)
 
-        play = ctk.CTkLabel(row1, text="▶", font=(None, 7),
-                             text_color=t["accent"])
+        play = ctk.CTkLabel(row1, text="▶", font=(None, 8),
+                             text_color=T("accent"))
         play.pack(side=tk.LEFT, padx=(0, 6))
 
-        nlbl = ctk.CTkLabel(row1, text=name, font=(None, 9, "bold"),
-                             text_color=t["fg"])
+        nlbl = ctk.CTkLabel(row1, text=name, font=(None, 10, "bold"),
+                             text_color=T("fg"))
         nlbl.pack(side=tk.LEFT)
 
-        del_btn = ctk.CTkLabel(row1, text="✕", font=(None, 9),
-                                text_color=t["text_muted"], cursor="hand2")
+        del_btn = ctk.CTkLabel(row1, text="✕", font=(None, 10),
+                                text_color=T("text_muted"), cursor="hand2")
         del_btn.pack(side=tk.RIGHT)
         del_btn.bind("<Button-1>",
                      lambda _, n=name: self._delete_profile_by_name(n))
 
-        meta = ctk.CTkLabel(inner,
-                             text=f"{data.get('method','GET')} · every {data.get('interval','?')}s",
-                             font=(None, 8), text_color=t["text_secondary"])
+        method = data.get('method', 'GET')
+        mode_lbl = {
+            MODE_SINGLE: "once",
+            MODE_COUNT: f"×{data.get('count', '?')}",
+            MODE_CONTINUOUS: f"every {data.get('interval','?')}s",
+        }.get(data.get("mode", MODE_CONTINUOUS),
+              f"every {data.get('interval','?')}s")
+        meta = ctk.CTkLabel(inner, text=f"{method} · {mode_lbl}",
+                             font=(None, 8),
+                             text_color=T("text_secondary"))
         meta.pack(anchor="w", pady=(2, 0))
 
         click_handler = lambda _, n=name: self._load_profile_by_name(n)
@@ -537,9 +618,9 @@ class MainWindow:
             w.bind("<Button-1>", click_handler)
 
         def _enter(_):
-            outer.configure(fg_color=hover_bg)
+            outer.configure(fg_color=T("filter_bg"))
         def _leave(_):
-            outer.configure(fg_color=norm_bg)
+            outer.configure(fg_color=T("card_bg"))
 
         for w in (outer, inner, row1, play, nlbl, meta, del_btn):
             w.bind("<Enter>", _enter)
@@ -556,9 +637,15 @@ class MainWindow:
         self._method_var.set(data.get("method", "GET"))
         self._method_cb.set(data.get("method", "GET"))
         self._interval_entry.delete(0, tk.END)
-        self._interval_entry.insert(0, data.get("interval", ""))
+        self._interval_entry.insert(0, str(data.get("interval", "")))
         self._stop_entry.delete(0, tk.END)
         self._stop_entry.insert(0, data.get("stop", ""))
+        self._count_entry.delete(0, tk.END)
+        if data.get("count"):
+            self._count_entry.insert(0, str(data.get("count")))
+        mode = data.get("mode", MODE_CONTINUOUS)
+        if mode in (MODE_SINGLE, MODE_COUNT, MODE_CONTINUOUS):
+            self._set_mode(mode)
         self._stored_headers = data.get("headers", {})
         self._stored_body    = data.get("body", "")
         self._update_extra_indicators()
@@ -571,58 +658,61 @@ class MainWindow:
     # ── dialogs ────────────────────────────────────────────────────────────────
 
     def _open_headers_dialog(self):
-        t = self._t
         dlg = ctk.CTkToplevel(self._root)
         dlg.title("HTTP Headers")
-        dlg.geometry("520x440")
-        dlg.configure(fg_color=t["bg"])
+        dlg.geometry("560x460")
+        dlg.configure(fg_color=T("bg"))
         dlg.transient(self._root)
-        dlg.grab_set()
+        dlg.after(100, dlg.grab_set)
 
-        ctk.CTkLabel(dlg, text="HTTP Headers", font=(None, 14, "bold"),
-                     text_color=t["fg"]).pack(anchor="w", padx=20, pady=(18, 4))
+        ctk.CTkLabel(dlg, text="HTTP Headers",
+                     font=(None, 16, "bold"),
+                     text_color=T("fg")).pack(anchor="w", padx=22, pady=(20, 4))
         ctk.CTkLabel(dlg, text="Key / value pairs sent with every request.",
-                     font=(None, 9), text_color=t["text_secondary"]).pack(
-            anchor="w", padx=20)
+                     font=(None, 10),
+                     text_color=T("text_secondary")).pack(anchor="w", padx=22)
 
-        # Accent bar + card
-        card = ctk.CTkFrame(dlg, fg_color=t["card_bg"], corner_radius=10,
-                             border_width=1, border_color=t["card_border"])
-        card.pack(fill=tk.BOTH, expand=True, padx=20, pady=12)
-        ctk.CTkFrame(card, fg_color=t["accent"], height=3,
-                     corner_radius=0).pack(fill=tk.X)
+        card = ctk.CTkFrame(dlg, fg_color=T("card_bg"), corner_radius=12,
+                             border_width=1, border_color=T("card_border"))
+        card.pack(fill=tk.BOTH, expand=True, padx=22, pady=14)
+        ctk.CTkFrame(card, fg_color=T("accent"),
+                      height=3, corner_radius=0).pack(fill=tk.X)
 
         body = ctk.CTkScrollableFrame(card, fg_color="transparent",
                                        corner_radius=0)
-        body.pack(fill=tk.BOTH, expand=True, padx=12, pady=10)
+        body.pack(fill=tk.BOTH, expand=True, padx=14, pady=12)
 
         rows: list = []
 
         def add_row(key="", value=""):
             row = ctk.CTkFrame(body, fg_color="transparent")
-            row.pack(fill=tk.X, pady=2)
+            row.pack(fill=tk.X, pady=3)
             ke = ctk.CTkEntry(row, placeholder_text="Header",
-                               fg_color=t["input_bg"],
-                               border_color=t["input_border"],
-                               text_color=t["fg"], font=(None, 9),
-                               height=32, corner_radius=6)
+                               fg_color=T("input_bg"),
+                               border_color=T("input_border"),
+                               text_color=T("fg"),
+                               placeholder_text_color=T("text_muted"),
+                               font=(None, 10),
+                               height=34, corner_radius=8)
             ke.pack(side=tk.LEFT, padx=(0, 6), fill=tk.X, expand=True)
             if key:
                 ke.insert(0, key)
             ve = ctk.CTkEntry(row, placeholder_text="Value",
-                               fg_color=t["input_bg"],
-                               border_color=t["input_border"],
-                               text_color=t["fg"], font=(None, 9),
-                               height=32, corner_radius=6)
+                               fg_color=T("input_bg"),
+                               border_color=T("input_border"),
+                               text_color=T("fg"),
+                               placeholder_text_color=T("text_muted"),
+                               font=(None, 10),
+                               height=34, corner_radius=8)
             ve.pack(side=tk.LEFT, padx=(0, 6), fill=tk.X, expand=True)
             if value:
                 ve.insert(0, value)
             idx = len(rows)
-            db = ctk.CTkButton(row, text="✕", width=28, height=28,
-                                corner_radius=6,
-                                fg_color=t["danger_bg"],
-                                hover_color=t["danger"],
-                                text_color=t["danger"],
+            db = ctk.CTkButton(row, text="✕", width=30, height=30,
+                                corner_radius=8,
+                                fg_color=T("danger_bg"),
+                                hover_color=T("danger"),
+                                text_color=T("danger"),
                                 font=(None, 10, "bold"),
                                 command=lambda i=idx: _remove(i))
             db.pack(side=tk.LEFT)
@@ -633,20 +723,18 @@ class MainWindow:
                 rows[idx][3].destroy()
                 rows[idx] = None
 
-        # Seed existing headers
         for k, v in self._stored_headers.items():
             add_row(k, v)
 
-        # Add button row
         add_bar = ctk.CTkFrame(card, fg_color="transparent")
-        add_bar.pack(fill=tk.X, padx=12, pady=(0, 8))
+        add_bar.pack(fill=tk.X, padx=14, pady=(0, 10))
         ctk.CTkButton(add_bar, text="＋  Add Header", command=add_row,
-                      fg_color=t["filter_bg"], hover_color=t["border"],
-                      text_color=t["text_secondary"], font=(None, 9),
-                      height=28, corner_radius=6).pack(anchor="w")
+                      fg_color=T("filter_bg"), hover_color=T("border"),
+                      text_color=T("text_secondary"), font=(None, 10),
+                      height=30, corner_radius=8).pack(anchor="w")
 
         btn_row = ctk.CTkFrame(dlg, fg_color="transparent")
-        btn_row.pack(fill=tk.X, padx=20, pady=(0, 18))
+        btn_row.pack(fill=tk.X, padx=22, pady=(0, 20))
 
         def _save():
             result = {}
@@ -662,44 +750,44 @@ class MainWindow:
             dlg.destroy()
 
         ctk.CTkButton(btn_row, text="Save", command=_save,
-                      fg_color=t["accent"], hover_color=t["accent_hover"],
-                      text_color=t["bg"], font=(None, 10, "bold"),
-                      height=36, corner_radius=8).pack(side=tk.RIGHT)
+                      fg_color=T("accent"), hover_color=T("accent_hover"),
+                      text_color=T("bg"), font=(None, 11, "bold"),
+                      height=38, corner_radius=10).pack(side=tk.RIGHT)
         ctk.CTkButton(btn_row, text="Cancel", command=dlg.destroy,
-                      fg_color=t["filter_bg"], hover_color=t["border"],
-                      text_color=t["text_secondary"], font=(None, 10, "bold"),
-                      height=36, corner_radius=8).pack(side=tk.RIGHT, padx=(0, 8))
+                      fg_color=T("filter_bg"), hover_color=T("border"),
+                      text_color=T("text_secondary"), font=(None, 11, "bold"),
+                      height=38, corner_radius=10).pack(side=tk.RIGHT, padx=(0, 8))
 
     def _open_body_dialog(self):
-        t = self._t
         dlg = ctk.CTkToplevel(self._root)
         dlg.title("Request Body")
-        dlg.geometry("520x440")
-        dlg.configure(fg_color=t["bg"])
+        dlg.geometry("560x460")
+        dlg.configure(fg_color=T("bg"))
         dlg.transient(self._root)
-        dlg.grab_set()
+        dlg.after(100, dlg.grab_set)
 
-        ctk.CTkLabel(dlg, text="Request Body", font=(None, 14, "bold"),
-                     text_color=t["fg"]).pack(anchor="w", padx=20, pady=(18, 4))
+        ctk.CTkLabel(dlg, text="Request Body",
+                     font=(None, 16, "bold"),
+                     text_color=T("fg")).pack(anchor="w", padx=22, pady=(20, 4))
         ctk.CTkLabel(dlg, text="Sent only with POST / PUT / PATCH.",
-                     font=(None, 9), text_color=t["text_secondary"]).pack(
-            anchor="w", padx=20)
+                     font=(None, 10),
+                     text_color=T("text_secondary")).pack(anchor="w", padx=22)
 
-        card = ctk.CTkFrame(dlg, fg_color=t["card_bg"], corner_radius=10,
-                             border_width=1, border_color=t["card_border"])
-        card.pack(fill=tk.BOTH, expand=True, padx=20, pady=12)
-        ctk.CTkFrame(card, fg_color=t["accent"], height=3,
-                     corner_radius=0).pack(fill=tk.X)
+        card = ctk.CTkFrame(dlg, fg_color=T("card_bg"), corner_radius=12,
+                             border_width=1, border_color=T("card_border"))
+        card.pack(fill=tk.BOTH, expand=True, padx=22, pady=14)
+        ctk.CTkFrame(card, fg_color=T("accent"),
+                      height=3, corner_radius=0).pack(fill=tk.X)
 
-        text = ctk.CTkTextbox(card, fg_color=t["input_bg"],
-                               text_color=t["fg"], font=("Courier", 10),
+        text = ctk.CTkTextbox(card, fg_color=T("input_bg"),
+                               text_color=T("fg"), font=("Courier", 11),
                                corner_radius=0, border_width=0)
-        text.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         if self._stored_body:
             text.insert("1.0", self._stored_body)
 
         btn_row = ctk.CTkFrame(dlg, fg_color="transparent")
-        btn_row.pack(fill=tk.X, padx=20, pady=(0, 18))
+        btn_row.pack(fill=tk.X, padx=22, pady=(0, 20))
 
         def _save():
             self._stored_body = text.get("1.0", tk.END).strip()
@@ -707,149 +795,72 @@ class MainWindow:
             dlg.destroy()
 
         ctk.CTkButton(btn_row, text="Save", command=_save,
-                      fg_color=t["accent"], hover_color=t["accent_hover"],
-                      text_color=t["bg"], font=(None, 10, "bold"),
-                      height=36, corner_radius=8).pack(side=tk.RIGHT)
+                      fg_color=T("accent"), hover_color=T("accent_hover"),
+                      text_color=T("bg"), font=(None, 11, "bold"),
+                      height=38, corner_radius=10).pack(side=tk.RIGHT)
         ctk.CTkButton(btn_row, text="Cancel", command=dlg.destroy,
-                      fg_color=t["filter_bg"], hover_color=t["border"],
-                      text_color=t["text_secondary"], font=(None, 10, "bold"),
-                      height=36, corner_radius=8).pack(side=tk.RIGHT, padx=(0, 8))
+                      fg_color=T("filter_bg"), hover_color=T("border"),
+                      text_color=T("text_secondary"), font=(None, 11, "bold"),
+                      height=38, corner_radius=10).pack(side=tk.RIGHT, padx=(0, 8))
 
     def _update_extra_indicators(self):
-        t = self._t
         has_h = bool(self._stored_headers)
         has_b = bool(self._stored_body)
         self._headers_btn.configure(
             text=f"✎  Headers · {len(self._stored_headers)}" if has_h else "✎  Headers",
-            text_color=t["accent"] if has_h else t["text_secondary"])
+            text_color=T("accent") if has_h else T("text_secondary"))
         self._body_btn.configure(
             text="✎  Body · set" if has_b else "✎  Body",
-            text_color=t["accent"] if has_b else t["text_secondary"])
+            text_color=T("accent") if has_b else T("text_secondary"))
 
     # ── theme ──────────────────────────────────────────────────────────────────
 
     def _toggle_theme(self):
-        self._t = LIGHT_THEME if self._t["name"] == "dark" else DARK_THEME
-        is_dark = self._t["name"] == "dark"
-        ctk.set_appearance_mode("dark" if is_dark else "light")
-        self._theme_btn.configure(text="🌙" if not is_dark else "☀️")
-        self._apply_theme()
+        self._is_dark = not self._is_dark
+        ctk.set_appearance_mode("dark" if self._is_dark else "light")
+        theme = DARK_THEME if self._is_dark else LIGHT_THEME
 
-    def _apply_theme(self):
-        t = self._t
+        for w in self._tk_bg_widgets:
+            try:
+                w.configure(bg=theme["bg"])
+            except Exception:
+                pass
+        self._stars.apply_theme(theme)
+        for w in self._tk_card_bg_widgets:
+            try:
+                w.set_bg(theme["card_bg"])
+            except Exception:
+                pass
 
-        self._root.configure(fg_color=t["bg"])
-
-        # Sidebar
-        self._sidebar.configure(fg_color=t["sidebar_bg"])
-        self._sb_sep.configure(fg_color=t["border"])
-        self._sb_div1.configure(fg_color=t["border"])
-        self._sb_div2.configure(fg_color=t["border"])
-        self._sb_title.configure(text_color=t["accent"])
-        self._sb_sub.configure(text_color=t["text_secondary"])
-        self._sb_plbl.configure(text_color=t["text_muted"])
-        if self._sb_icon_lbl:
-            self._sb_icon_lbl.configure(bg=t["sidebar_bg"])
-        self._theme_lbl.configure(text_color=t["text_secondary"])
-        self._prof_scroll.configure(
-            scrollbar_button_color=t["scroll_fg"],
-            scrollbar_button_hover_color=t["accent"])
-        self._save_prof_btn.configure(
-            fg_color=t["filter_bg"], hover_color=t["card_border"],
-            text_color=t["text_secondary"])
-        self._refresh_profiles_list()
-
-        # Content
-        self._content_wrap.configure(bg=t["bg"])
-        self._cols_holder.configure(bg=t["bg"])
-        self._left_col.configure(bg=t["bg"])
-        self._right_col.configure(bg=t["bg"])
-        self._stars.apply_theme(t)
-
-        # Wake Up card
-        self._wu_card.configure(fg_color=t["card_bg"], border_color=t["card_border"])
-        self._wu_title.configure(text_color=t["fg"])
-        self._wu_sub.configure(text_color=t["text_secondary"])
-        if self._wu_icon_lbl:
-            self._wu_icon_lbl.configure(bg=t["card_bg"])
-        self._url_entry.configure(fg_color=t["input_bg"],
-                                   border_color=t["input_border"],
-                                   text_color=t["fg"],
-                                   placeholder_text_color=t["text_muted"])
-        self._method_cb.configure(fg_color=t["input_bg"],
-                                   border_color=t["input_border"],
-                                   button_color=t["input_bg"],
-                                   text_color=t["fg"])
-        self._interval_entry.configure(fg_color=t["input_bg"],
-                                        border_color=t["input_border"],
-                                        text_color=t["fg"])
-        self._stop_entry.configure(fg_color=t["input_bg"],
-                                    border_color=t["input_border"],
-                                    text_color=t["fg"])
-        self._update_extra_indicators()
-        if self._is_running:
-            self._wake_btn.configure(fg_color=t["danger"],
-                                      hover_color=t["danger_hover"],
-                                      text_color="white")
-        else:
-            self._wake_btn.configure(fg_color=t["accent"],
-                                      hover_color=t["accent_hover"],
-                                      text_color=t["bg"])
-        self._wu_dot.set_bg(t["card_bg"])
-        self._wu_status.configure(text_color=t["text_secondary"])
-        self._wu_bar.configure(fg_color=t["filter_bg"],
-                                progress_color=t["accent"])
-
-        # Activity card
-        self._act_card.configure(fg_color=t["card_bg"], border_color=t["card_border"])
-        self._act_title.configure(text_color=t["fg"])
-        self._export_btn.configure(fg_color=t["filter_bg"], hover_color=t["border"],
-                                    text_color=t["text_secondary"])
-        self._clear_btn.configure(fg_color=t["filter_bg"], hover_color=t["border"],
-                                   text_color=t["text_secondary"])
-        for card in self._stat_cards:
-            card["frame"].configure(fg_color=t["input_bg"])
-            card["val_lbl"].configure(text_color=card["color"])
-            card["name_lbl"].configure(text_color=t["text_secondary"])
-
-        active = self._log_filter
-        for fname, btn in self._filter_btns.items():
-            is_active = (fname == active)
-            btn.configure(
-                fg_color=t["filter_act"] if is_active else t["filter_bg"],
-                hover_color=t["accent_hover"] if is_active else t["border"],
-                text_color=t["bg"] if is_active else t["text_secondary"])
-
-        self._log.configure(fg_color=t["log_bg"], text_color=t["fg"],
-                             border_color=t["card_border"],
-                             scrollbar_button_color=t["scroll_fg"],
-                             scrollbar_button_hover_color=t["accent"])
-        tb = self._log._textbox
-        for tag in ("2xx", "3xx", "4xx", "5xx", "error",
-                    "info", "ts", "method", "ms"):
-            tb.tag_config(tag, foreground=t[f"tag_{tag}"])
+        self._refresh_log_tags()
 
     # ── scheduler wiring ───────────────────────────────────────────────────────
 
     def _wire_scheduler(self):
         sch = self._scheduler
         (sch
-         .on("response",    self._on_response)
-         .on("req_error",   self._on_req_error)
-         .on("countdown",   self._on_countdown)
-         .on("completed",   self._on_completed)
-         .on("finished",    self._on_finished)
-         .on("error_event", self._on_error_event))
+         .on("response",         self._on_response)
+         .on("req_error",        self._on_req_error)
+         .on("countdown",        self._on_countdown)
+         .on("sent",             self._on_sent)
+         .on("completed",        self._on_completed)
+         .on("completed_count",  self._on_completed_count)
+         .on("completed_single", self._on_completed_single)
+         .on("finished",         self._on_finished)
+         .on("error_event",      self._on_error_event))
 
     def _safe(self, fn, *a, **kw):
         self._root.after(0, lambda: fn(*a, **kw))
 
-    def _on_response(self, d):     self._safe(self._handle_response, d)
-    def _on_req_error(self, d):    self._safe(self._handle_req_error, d)
-    def _on_countdown(self, r, t): self._safe(self._handle_countdown, r, t)
-    def _on_completed(self, st):   self._safe(self._handle_completed, st)
-    def _on_finished(self):        self._safe(self._handle_finished)
-    def _on_error_event(self, m):  self._safe(self._handle_error_event, m)
+    def _on_response(self, d):           self._safe(self._handle_response, d)
+    def _on_req_error(self, d):          self._safe(self._handle_req_error, d)
+    def _on_countdown(self, r, t):       self._safe(self._handle_countdown, r, t)
+    def _on_sent(self, n, tg):           self._safe(self._handle_sent, n, tg)
+    def _on_completed(self, st):         self._safe(self._handle_completed, st)
+    def _on_completed_count(self, n):    self._safe(self._handle_completed_count, n)
+    def _on_completed_single(self):      self._safe(self._handle_completed_single)
+    def _on_finished(self):              self._safe(self._handle_finished)
+    def _on_error_event(self, m):        self._safe(self._handle_error_event, m)
 
     # ── UI-thread handlers ─────────────────────────────────────────────────────
 
@@ -880,27 +891,49 @@ class MainWindow:
 
     def _handle_countdown(self, remaining: int, total: int):
         self._wu_bar.set(remaining / total)
-        self._wu_status.configure(text=f"Next request in {remaining}s…",
-                                   text_color=self._t["text_secondary"])
+        if self._mode == MODE_COUNT:
+            self._wu_status.configure(
+                text=f"Sent {self._scheduler.sent_count} of "
+                     f"{self._scheduler.target_count} · next in {remaining}s…",
+                text_color=T("text_secondary"))
+        else:
+            self._wu_status.configure(
+                text=f"Next request in {remaining}s…",
+                text_color=T("text_secondary"))
+
+    def _handle_sent(self, n: int, target):
+        if target is not None:
+            self._wu_status.configure(
+                text=f"Sent {n} of {target}…",
+                text_color=T("success"))
 
     def _handle_completed(self, stop_time):
-        msg = f"Completed at {stop_time.strftime('%H:%M')}"
-        self._wu_status.configure(text=msg, text_color=self._t["success"])
-        self._wu_dot.set_color(self._t["success"])
+        self._wu_status.configure(
+            text=f"Completed at {stop_time.strftime('%H:%M')}",
+            text_color=T("success"))
+        self._wu_dot.set_color(
+            DARK_THEME["success"] if self._is_dark else LIGHT_THEME["success"])
         self._wu_bar.set(0)
+
+    def _handle_completed_count(self, n: int):
+        self._wu_status.configure(text=f"Completed — sent {n} requests",
+                                   text_color=T("success"))
+        self._wu_bar.set(1.0)
+
+    def _handle_completed_single(self):
+        self._wu_status.configure(text="Sent.", text_color=T("success"))
+        self._wu_bar.set(1.0)
 
     def _handle_finished(self):
         self._set_running(False)
         self._wu_dot.stop()
-        self._wu_bar.set(0)
-        status_text = self._wu_status.cget("text")
-        if "Running" in (status_text or ""):
+        if "Running" in (self._wu_status.cget("text") or ""):
             self._wu_status.configure(text="Stopped",
-                                       text_color=self._t["danger"])
+                                       text_color=T("danger"))
 
     def _handle_error_event(self, msg: str):
         self._wu_status.configure(text=f"Error: {msg}",
-                                   text_color=self._t["danger"])
+                                   text_color=T("danger"))
 
     # ── log helpers ────────────────────────────────────────────────────────────
 
@@ -928,17 +961,16 @@ class MainWindow:
 
     def _set_running(self, running: bool):
         self._is_running = running
-        t = self._t
         if running:
-            self._wake_btn.configure(text="⏹  STOP  WAKING",
-                                      fg_color=t["danger"],
-                                      hover_color=t["danger_hover"],
-                                      text_color="white")
+            self._wake_btn.configure(text="⏹  STOP",
+                                      fg_color=T("danger"),
+                                      hover_color=T("danger_hover"),
+                                      text_color=("white", "white"))
         else:
             self._wake_btn.configure(text="▶   WAKE UP API",
-                                      fg_color=t["accent"],
-                                      hover_color=t["accent_hover"],
-                                      text_color=t["bg"])
+                                      fg_color=T("accent"),
+                                      hover_color=T("accent_hover"),
+                                      text_color=T("bg"))
 
     def _on_wake_click(self):
         if self._is_running:
@@ -947,47 +979,77 @@ class MainWindow:
             self._on_start()
 
     def _on_start(self):
-        url      = self._url_entry.get().strip()
-        int_str  = self._interval_entry.get().strip()
-        stop_str = self._stop_entry.get().strip()
-
+        url = self._url_entry.get().strip()
         if not url:
             messagebox.showerror("おはよう", "Please enter a URL.")
-            return
-        if not int_str:
-            messagebox.showerror("おはよう", "Please enter an interval (seconds).")
-            return
-        if not stop_str:
-            messagebox.showerror("おはよう", "Please enter a stop time (HH:MM).")
-            return
-        try:
-            interval = int(int_str)
-            if interval <= 0:
-                raise ValueError
-        except ValueError:
-            messagebox.showerror("おはよう", "Interval must be a positive integer.")
-            return
-        try:
-            stop_time = datetime.strptime(stop_str, "%H:%M").time()
-        except ValueError:
-            messagebox.showerror("おはよう", "Stop time must be HH:MM (24-hour).")
             return
 
         method  = self._method_var.get()
         headers = self._stored_headers
         body    = self._stored_body if method in ("POST", "PUT", "PATCH") else ""
 
+        interval = 0
+        stop_time = None
+        count = 1
+
+        if self._mode in (MODE_COUNT, MODE_CONTINUOUS):
+            int_str = self._interval_entry.get().strip()
+            if not int_str:
+                messagebox.showerror("おはよう",
+                                     "Please enter an interval (seconds).")
+                return
+            try:
+                interval = int(int_str)
+                if interval <= 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("おはよう",
+                                     "Interval must be a positive integer.")
+                return
+
+        if self._mode == MODE_CONTINUOUS:
+            stop_str = self._stop_entry.get().strip()
+            if not stop_str:
+                messagebox.showerror("おはよう",
+                                     "Please enter a stop time (HH:MM).")
+                return
+            try:
+                stop_time = datetime.strptime(stop_str, "%H:%M").time()
+            except ValueError:
+                messagebox.showerror("おはよう",
+                                     "Stop time must be HH:MM (24-hour).")
+                return
+
+        if self._mode == MODE_COUNT:
+            cnt_str = self._count_entry.get().strip()
+            if not cnt_str:
+                messagebox.showerror("おはよう", "Please enter a count (N).")
+                return
+            try:
+                count = int(cnt_str)
+                if count <= 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("おはよう",
+                                     "Count must be a positive integer.")
+                return
+
         self._set_running(True)
-        self._wu_status.configure(text="Running…", text_color=self._t["success"])
-        self._wu_dot.set_color(self._t["success"])
+        self._wu_status.configure(text="Running…", text_color=T("success"))
+        self._wu_dot.set_color(
+            DARK_THEME["success"] if self._is_dark else LIGHT_THEME["success"])
         self._wu_dot.start()
         self._wu_bar.set(1.0)
-        self._scheduler.start(url, method, headers, body, interval, stop_time)
+
+        self._scheduler.start(url, method, headers, body,
+                               interval=interval, stop_time=stop_time,
+                               mode=self._mode, count=count)
 
     def _on_stop(self):
         self._scheduler.stop()
-        self._wu_status.configure(text="Stopped", text_color=self._t["danger"])
-        self._wu_dot.set_color(self._t["danger"])
+        self._wu_status.configure(text="Stopped", text_color=T("danger"))
+        self._wu_dot.set_color(
+            DARK_THEME["danger"] if self._is_dark else LIGHT_THEME["danger"])
         self._wu_dot.stop()
         self._wu_bar.set(0)
 
@@ -1002,13 +1064,12 @@ class MainWindow:
 
     def _on_filter(self, fname: str):
         self._log_filter = fname
-        t = self._t
         for f, btn in self._filter_btns.items():
             is_active = (f == fname)
             btn.configure(
-                fg_color=t["filter_act"] if is_active else t["filter_bg"],
-                hover_color=t["accent_hover"] if is_active else t["border"],
-                text_color=t["bg"] if is_active else t["text_secondary"])
+                fg_color=T("filter_act") if is_active else T("filter_bg"),
+                hover_color=T("accent_hover") if is_active else T("border"),
+                text_color=T("bg") if is_active else T("text_secondary"))
 
     def _export_log(self):
         content = self._log.get("1.0", tk.END).strip()
@@ -1034,6 +1095,8 @@ class MainWindow:
             "method":   self._method_var.get(),
             "interval": self._interval_entry.get(),
             "stop":     self._stop_entry.get(),
+            "count":    self._count_entry.get(),
+            "mode":     self._mode,
             "headers":  self._stored_headers,
             "body":     self._stored_body,
         }

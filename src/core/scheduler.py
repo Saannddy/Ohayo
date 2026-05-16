@@ -6,12 +6,19 @@ import requests
 
 
 class Scheduler:
-    """HTTP request scheduler — runs requests on a repeating timer."""
+    """HTTP request scheduler — supports continuous, single, and count modes."""
+
+    MODE_CONTINUOUS = "continuous"  # repeat until stop_time
+    MODE_SINGLE     = "single"      # send once
+    MODE_COUNT      = "count"       # send N times with interval
 
     def __init__(self):
         self.is_running = False
         self._thread = None
         self._callbacks: dict = {}
+        self.mode = self.MODE_CONTINUOUS
+        self.sent_count = 0
+        self.target_count = 0
         self.reset_stats()
 
     # ── Stats ──────────────────────────────────────────────────────────
@@ -20,6 +27,7 @@ class Scheduler:
         self.success_count = 0
         self.total_ms = 0.0
         self.last_status = None
+        self.sent_count = 0
 
     @property
     def stats(self):
@@ -49,14 +57,17 @@ class Scheduler:
 
     # ── Control ──────────────────────────────────────────────────────────
     def start(self, url: str, method: str, headers: dict,
-              body: str, interval: int, stop_time):
+              body: str, interval: int = 0, stop_time=None,
+              mode: str = MODE_CONTINUOUS, count: int = 1):
         if self.is_running:
             return
         self.reset_stats()
         self.is_running = True
+        self.mode = mode
+        self.target_count = count
         self._thread = threading.Thread(
             target=self._loop,
-            args=(url, method, headers, body, interval, stop_time),
+            args=(url, method, headers, body, interval, stop_time, mode, count),
             daemon=True,
         )
         self._thread.start()
@@ -65,14 +76,37 @@ class Scheduler:
         self.is_running = False
 
     # ── Internal loop ────────────────────────────────────────────────────
-    def _loop(self, url, method, headers, body, interval, stop_time):
+    def _loop(self, url, method, headers, body, interval, stop_time, mode, count):
         try:
+            # Single-shot mode: just fire once and exit
+            if mode == self.MODE_SINGLE:
+                if self.is_running:
+                    self._make_request(url, method, headers, body)
+                    self.sent_count = 1
+                    self._emit("completed_single")
+                return
+
+            # Continuous / count modes — looped
             while self.is_running:
-                if datetime.now().time() >= stop_time:
-                    self._emit("completed", stop_time)
+                # Pre-check stop conditions
+                if mode == self.MODE_CONTINUOUS and stop_time is not None:
+                    if datetime.now().time() >= stop_time:
+                        self._emit("completed", stop_time)
+                        break
+
+                if mode == self.MODE_COUNT and self.sent_count >= count:
+                    self._emit("completed_count", count)
                     break
 
                 self._make_request(url, method, headers, body)
+                self.sent_count += 1
+                self._emit("sent", self.sent_count,
+                           count if mode == self.MODE_COUNT else None)
+
+                # Post-check: stop right after the last send in count mode
+                if mode == self.MODE_COUNT and self.sent_count >= count:
+                    self._emit("completed_count", count)
+                    break
 
                 if not self.is_running:
                     break
