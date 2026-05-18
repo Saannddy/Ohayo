@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: #060C18;
+    color: #E2E8F0;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #1A3158; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2A4A78; }
+
+  ::selection { background: rgba(245,158,11,0.25); }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-card border border-border rounded-xl shadow-card backdrop-blur-sm;
+  }
+
+  .input-base {
+    @apply w-full bg-input-bg border border-input-border rounded-lg px-3 py-2
+           text-text-primary placeholder:text-text-muted text-sm
+           focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/20
+           transition-colors;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+           text-text-secondary hover:text-text-primary hover:bg-surface transition-all;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+           bg-surface border border-border text-text-secondary
+           hover:text-text-primary hover:bg-card-hover hover:border-border transition-all;
+  }
+
+  .pill-active {
+    @apply bg-accent text-bg font-semibold;
+  }
+
+  .pill-inactive {
+    @apply bg-surface border border-border text-text-secondary
+           hover:text-text-primary hover:border-border transition-all;
+  }
+}
+
+@layer utilities {
+  .text-gradient-accent {
+    background: linear-gradient(135deg, #F59E0B 0%, #FBB040 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-gradient {
+    border-image: linear-gradient(135deg, #1A3158, #2A4878) 1;
+  }
+
+  .no-drag { -webkit-app-region: no-drag; }
+
+  .animate-float-in { animation: floatIn 0.25s ease-out; }
+}
+
+.log-2xx   { color: #34D399; }
+.log-3xx   { color: #FBBF24; }
+.log-4xx   { color: #F87171; }
+.log-5xx   { color: #EF4444; }
+.log-error { color: #F43F5E; }
+.log-ts    { color: #475569; }
+.log-info  { color: #94A3B8; }
