@@ -40,7 +40,7 @@ pub async fn make_request(
         req = req.body(body.to_string());
     }
 
-    let elapsed = || (start.elapsed().as_secs_f64() * 1000.0);
+    let elapsed = || start.elapsed().as_secs_f64() * 1000.0;
 
     match req.send().await {
         Ok(resp) => RequestResult::Success(ResponsePayload {

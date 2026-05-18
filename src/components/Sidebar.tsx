@@ -27,7 +27,7 @@ export function Sidebar() {
     <aside className="w-60 flex-shrink-0 flex flex-col bg-sidebar border-r border-border/50 overflow-hidden">
       {/* Brand */}
       <div className="px-5 pt-5 pb-4 flex-shrink-0">
-        <div className="text-2xl font-bold text-gradient-accent tracking-tight">おはよう</div>
+        <div className="text-2xl font-bold text-gradient-acc tracking-tight">おはよう</div>
         <div className="text-[10px] text-text-muted mt-0.5 tracking-widest uppercase">API Waker · v2</div>
       </div>
 

@@ -5,7 +5,8 @@ export function useTheme() {
   const { isDark, toggleTheme } = useAppStore();
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", isDark);
+    // Dark = no class, Light = "light" class on <html>
+    document.documentElement.classList.toggle("light", !isDark);
   }, [isDark]);
 
   return { isDark, toggleTheme };

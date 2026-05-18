@@ -2,30 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  * { box-sizing: border-box; }
+/* ── Design tokens ──────────────────────────────────────────────── */
+/* Default = dark (midnight sky & moon) */
+:root {
+  --bg:   2 8 18;          /* #020812  deep midnight */
+  --sur:  6 14 28;         /* #060E1C  night surface */
+  --card: 10 22 40;        /* #0A1628  cloud dark */
+  --cardh:15 30 52;        /* #0F1E34 */
+  --bdr:  22 43 72;        /* #162B48 */
+  --bdrs: 12 28 55;        /* #0C1C37 */
+  --acc:  196 181 253;     /* #C4B5FD  moonlit lavender */
+  --acch: 221 214 254;     /* #DDD6FE */
+  --suc:  110 231 183;     /* #6EE7B7  aurora */
+  --dan:  252 165 165;     /* #FCA5A5 */
+  --wrn:  253 230 138;     /* #FDE68A */
+  --tp:   240 244 255;     /* #F0F4FF  moonlight white */
+  --ts:   148 163 184;     /* #94A3B8 */
+  --tm:   61 81 112;       /* #3D5170 */
+  --ibg:  3 7 15;          /* #03070F */
+  --ibd:  22 43 72;        /* #162B48 */
+  --lbg:  2 7 16;          /* #020710 */
+  --sb:   4 10 22;         /* #040A16  sidebar */
+}
 
-  html, body, #root {
-    height: 100%;
-    overflow: hidden;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
+/* Light = morning sky & sun */
+.light {
+  --bg:   240 249 255;     /* #F0F9FF  morning sky */
+  --sur:  224 242 254;     /* #E0F2FE */
+  --card: 255 255 255;     /* #FFFFFF */
+  --cardh:240 249 255;     /* #F0F9FF */
+  --bdr:  186 230 253;     /* #BAE6FD */
+  --bdrs: 207 240 253;     /* #CFE7FC */
+  --acc:  245 158 11;      /* #F59E0B  morning sun */
+  --acch: 251 191 36;      /* #FBBF24 */
+  --suc:  5 150 105;       /* #059669 */
+  --dan:  220 38 38;       /* #DC2626 */
+  --wrn:  217 119 6;       /* #D97706 */
+  --tp:   15 23 42;        /* #0F172A */
+  --ts:   51 65 85;        /* #334155 */
+  --tm:   100 116 139;     /* #64748B */
+  --ibg:  255 255 255;     /* #FFFFFF */
+  --ibd:  186 230 253;     /* #BAE6FD */
+  --lbg:  248 250 252;     /* #F8FAFC */
+  --sb:   232 244 253;     /* #E8F4FD */
+}
+
+/* ── Base ───────────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body, #root { height: 100%; overflow: hidden; }
 
   body {
-    background-color: #060C18;
-    color: #E2E8F0;
+    background-color: rgb(var(--bg));
+    color: rgb(var(--tp));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     font-family: "Inter", system-ui, sans-serif;
   }
 
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #1A3158; border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: #2A4A78; }
+  ::-webkit-scrollbar-thumb { background: rgb(var(--bdr)); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgb(var(--acc) / 0.5); }
 
-  ::selection { background: rgba(245,158,11,0.25); }
+  ::selection { background: rgb(var(--acc) / 0.25); }
 }
 
+/* ── Components ─────────────────────────────────────────────────── */
 @layer components {
   .glass-card {
     @apply bg-card border border-border rounded-xl shadow-card backdrop-blur-sm;
@@ -48,38 +92,64 @@
            bg-surface border border-border text-text-secondary
            hover:text-text-primary hover:bg-card-hover hover:border-border transition-all;
   }
-
-  .pill-active {
-    @apply bg-accent text-bg font-semibold;
-  }
-
-  .pill-inactive {
-    @apply bg-surface border border-border text-text-secondary
-           hover:text-text-primary hover:border-border transition-all;
-  }
 }
 
+/* ── Utilities ──────────────────────────────────────────────────── */
 @layer utilities {
-  .text-gradient-accent {
-    background: linear-gradient(135deg, #F59E0B 0%, #FBB040 100%);
+  .text-gradient-acc {
+    background: linear-gradient(135deg, rgb(var(--acc)) 0%, rgb(var(--acch)) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-
-  .border-gradient {
-    border-image: linear-gradient(135deg, #1A3158, #2A4878) 1;
-  }
-
-  .no-drag { -webkit-app-region: no-drag; }
-
   .animate-float-in { animation: floatIn 0.25s ease-out; }
 }
 
+/* ── Log tag colours ────────────────────────────────────────────── */
 .log-2xx   { color: #34D399; }
 .log-3xx   { color: #FBBF24; }
 .log-4xx   { color: #F87171; }
 .log-5xx   { color: #EF4444; }
 .log-error { color: #F43F5E; }
-.log-ts    { color: #475569; }
-.log-info  { color: #94A3B8; }
+
+/* ── Burning rope progress bar ──────────────────────────────────── */
+.rope-track {
+  position: relative;
+  height: 5px;
+  background: rgba(10, 5, 0, 0.5);
+  border-radius: 9999px 9999px 0 0;
+  overflow: visible;
+  flex-shrink: 0;
+}
+.light .rope-track {
+  background: rgba(186, 230, 253, 0.4);
+}
+
+.rope-bar {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg,
+    #1A0500 0%,
+    #5C1E00 20%,
+    #9A3D00 45%,
+    #D46200 68%,
+    #FF8F00 85%,
+    #FFD000 95%,
+    #FFEF80 100%
+  );
+  transition: width 0.95s linear;
+}
+
+.rope-ember {
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #FFEE80;
+  animation: ember 0.45s ease-in-out infinite alternate;
+  z-index: 10;
+}

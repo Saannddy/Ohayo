@@ -71,7 +71,7 @@ export function RequestBar() {
             flex-shrink-0 h-11 px-6 rounded-lg font-semibold text-sm transition-all duration-200
             ${isRunning
               ? "bg-danger hover:bg-danger/90 text-white shadow-none"
-              : "bg-accent hover:bg-accent-hover text-bg shadow-glow-accent"
+              : "bg-accent hover:bg-accent-hover text-bg shadow-glow-acc"
             }
           `}
         >

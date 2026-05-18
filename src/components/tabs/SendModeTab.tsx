@@ -24,7 +24,7 @@ export function SendModeTab() {
               onClick={() => setMode(value)}
               className={`flex flex-col items-center gap-1 py-3 px-2 rounded-xl border text-center
                 transition-all duration-200 ${active
-                  ? "bg-accent/10 border-accent text-accent shadow-glow-accent"
+                  ? "bg-accent/10 border-accent text-accent shadow-glow-acc"
                   : "bg-surface border-border text-text-secondary hover:border-border hover:text-text-primary hover:bg-card-hover"
                 }`}
             >
