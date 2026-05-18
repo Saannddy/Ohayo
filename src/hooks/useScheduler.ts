@@ -62,6 +62,11 @@ export function useScheduler() {
       store.setProgress(1);
     }));
 
+    tasks.push(listen<string>("scheduler:waiting", ({ payload }) => {
+      store.setStatus(`Waiting to start at ${payload}…`, "muted");
+      store.setProgress(1);
+    }));
+
     tasks.push(listen("scheduler:finished", () => {
       store.setRunning(false);
       if (store.statusMessage === "Running…") {
@@ -82,6 +87,7 @@ export function useScheduler() {
         mode: s.mode,
         interval: parseInt(s.interval) || 5,
         count: parseInt(s.count) || 1,
+        startTime: s.startTime,
         stopTime: s.stopTime,
       },
     });

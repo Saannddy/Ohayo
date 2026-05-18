@@ -11,7 +11,7 @@ export function LogPanel() {
     <div className="glass-card flex flex-col h-full overflow-hidden">
 
       {/* ── Burning rope progress bar ── */}
-      <div className="rope-track rounded-t-xl">
+      <div className="rope-track">
         {pct > 0 && (
           <div className="rope-bar" style={{ width: `${pct}%` }}>
             {/* Glowing ember at the burning tip */}

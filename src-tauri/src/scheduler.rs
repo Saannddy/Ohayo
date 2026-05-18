@@ -61,6 +61,17 @@ async fn run_scheduler(cfg: ScheduleConfig, client: reqwest::Client, app: AppHan
         return;
     }
 
+    // Wait until start_time if set (continuous mode only)
+    if cfg.mode == "continuous" && !cfg.start_time.is_empty() {
+        if let Ok(st) = NaiveTime::parse_from_str(&cfg.start_time, "%H:%M") {
+            while running.load(Ordering::SeqCst) {
+                if Local::now().time() >= st { break; }
+                let _ = app.emit("scheduler:waiting", cfg.start_time.clone());
+                sleep(Duration::from_secs(1)).await;
+            }
+        }
+    }
+
     let stop_time = if cfg.mode == "continuous" && !cfg.stop_time.is_empty() {
         NaiveTime::parse_from_str(&cfg.stop_time, "%H:%M").ok()
     } else { None };

@@ -11,6 +11,8 @@ pub struct ScheduleConfig {
     pub mode: String,
     pub interval: u64,
     pub count: u32,
+    #[serde(default)]
+    pub start_time: String,
     pub stop_time: String,
 }
 
@@ -68,5 +70,7 @@ pub struct Profile {
     pub mode: String,
     pub interval: String,
     pub count: String,
+    #[serde(default)]
+    pub start_time: String,
     pub stop_time: String,
 }

@@ -10,7 +10,10 @@ const MODES: ModeCard[] = [
 ];
 
 export function SendModeTab() {
-  const { mode, interval, count, stopTime, setMode, setInterval, setCount, setStopTime } = useAppStore();
+  const {
+    mode, interval, count, startTime, stopTime,
+    setMode, setInterval, setCount, setStartTime, setStopTime,
+  } = useAppStore();
 
   return (
     <div className="flex flex-col gap-3 py-3">
@@ -38,11 +41,11 @@ export function SendModeTab() {
 
       {/* Dynamic fields */}
       {mode !== "single" && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className={`grid gap-3 ${mode === "continuous" ? "grid-cols-3" : "grid-cols-2"}`}>
           {/* Interval — always shown for non-single */}
           <div>
             <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wide">
-              Every (seconds)
+              Every (s)
             </label>
             <input
               type="number"
@@ -69,18 +72,32 @@ export function SendModeTab() {
               />
             </div>
           ) : (
-            <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wide">
-                Until (HH:MM)
-              </label>
-              <input
-                type="text"
-                value={stopTime}
-                onChange={(e) => setStopTime(e.target.value)}
-                placeholder="23:59"
-                className="input-base"
-              />
-            </div>
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wide">
+                  From (HH:MM)
+                </label>
+                <input
+                  type="text"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  placeholder="now"
+                  className="input-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wide">
+                  Until (HH:MM)
+                </label>
+                <input
+                  type="text"
+                  value={stopTime}
+                  onChange={(e) => setStopTime(e.target.value)}
+                  placeholder="23:59"
+                  className="input-base"
+                />
+              </div>
+            </>
           )}
         </div>
       )}

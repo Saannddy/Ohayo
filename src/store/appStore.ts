@@ -9,6 +9,7 @@ interface AppStore {
   mode: ScheduleMode;
   interval: string;
   count: string;
+  startTime: string;
   stopTime: string;
   headers: HeaderRow[];
   body: string;
@@ -26,6 +27,7 @@ interface AppStore {
   setMode: (v: ScheduleMode) => void;
   setInterval: (v: string) => void;
   setCount: (v: string) => void;
+  setStartTime: (v: string) => void;
   setStopTime: (v: string) => void;
   setBody: (v: string) => void;
   setRunning: (v: boolean) => void;
@@ -42,7 +44,7 @@ interface AppStore {
   toggleTheme: () => void;
   applyProfile: (data: {
     url: string; method: string; mode: string;
-    interval: string; count: string; stopTime: string;
+    interval: string; count: string; startTime?: string; stopTime: string;
     headers: Record<string, string>; body: string;
   }) => void;
   getHeadersMap: () => Record<string, string>;
@@ -54,6 +56,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   mode: "continuous",
   interval: "5",
   count: "10",
+  startTime: "",
   stopTime: "23:59",
   headers: [],
   body: "",
@@ -71,6 +74,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setMode: (v) => set({ mode: v }),
   setInterval: (v) => set({ interval: v }),
   setCount: (v) => set({ count: v }),
+  setStartTime: (v) => set({ startTime: v }),
   setStopTime: (v) => set({ stopTime: v }),
   setBody: (v) => set({ body: v }),
   setRunning: (v) => set({ isRunning: v }),
@@ -103,6 +107,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     mode: data.mode as ScheduleMode,
     interval: data.interval,
     count: data.count,
+    startTime: data.startTime ?? "",
     stopTime: data.stopTime,
     body: data.body,
     headers: Object.entries(data.headers).map(([key, value]) => ({
