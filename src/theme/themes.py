@@ -91,6 +91,11 @@ DARK_THEME = {
     "sel_bg":       "#1A3058",
 }
 
+def T(key: str) -> tuple:
+    """Return (light_color, dark_color) tuple for CTk auto-switching widgets."""
+    return (LIGHT_THEME[key], DARK_THEME[key])
+
+
 # Light morning — clean blue-white palette
 LIGHT_THEME = {
     "name": "light",
