@@ -13,11 +13,14 @@ Built with **Tauri 2** (Rust backend) + **React / TypeScript** frontend.
 - **Custom headers** — Key/value editor per request
 - **Request body** — Raw body for POST / PUT / PATCH
 - **Live response log** — Color-coded by status (2xx / 3xx / 4xx / 5xx / ERR)
+- **Response inspector** — Dedicated Logs page with full response body (pretty JSON) + headers
 - **Real-time stats** — Total, success %, avg ms, last status code
-- **Collections** — Save and reload request presets (stored in `~/.ohayo_profiles.json`)
-- **Export log** — Download as `.txt`
+- **Collections** — Bruno-style folders of `.ohy` request files in a folder you pick on disk
+- **Import / Export** — Bundle a whole collection to a single `.ohy` file and back
+- **Environment variables** — Per-collection environments; reference as `{{name}}` in URL, headers, body
+- **Delete confirmation** — Modal shows exactly what will be removed
 - **Dark / Light theme** — Toggle in the sidebar
-- **Animated starfield** — 220-star canvas background
+- **Animated starfield** — Canvas background
 
 ---
 
@@ -73,19 +76,26 @@ Output: `src-tauri/target/release/bundle/`
 
 ---
 
-## Docker (web preview only)
+## Collections (`.ohy`)
 
-The Docker setup runs the **Vite frontend** in a browser.
-Tauri-native features (file system, profiles) are not available in Docker.
+A collection is just a folder you pick on disk. Each saved request is one
+pretty-printed JSON file with the `.ohy` extension; subfolders group requests.
+Environments live in an `environments/` subfolder.
 
-```bash
-# Development (hot-reload at http://localhost:1420)
-docker compose up
-
-# Production web build
-docker build --target prod -t ohayo-web .
-docker run -p 80:80 ohayo-web
 ```
+MyCollection/
+├── collection.ohy           # collection metadata
+├── environments/
+│   ├── dev.ohy              # { "name": "dev", "vars": { "host": "..." } }
+│   └── prod.ohy
+├── GitHub/
+│   └── list-repos.ohy
+└── health-check.ohy
+```
+
+Because it's plain files in a folder, collections are git-friendly and portable.
+Use **Export** to bundle the whole tree into a single `.ohy` file, and **Import**
+to reconstruct it elsewhere.
 
 ---
 
@@ -97,36 +107,37 @@ Ohayo/
 │   ├── App.tsx
 │   ├── components/
 │   │   ├── StarField.tsx       # Canvas starfield animation
-│   │   ├── Sidebar.tsx         # Collections + theme toggle
+│   │   ├── TopNav.tsx          # Page tabs + env selector + Save Current
+│   │   ├── Sidebar.tsx         # Collection tree + import/export + theme
+│   │   ├── CollectionTree.tsx  # Recursive folder/request tree
+│   │   ├── Modal.tsx           # Portal dialog (delete confirm, save, etc.)
+│   │   ├── EnvSelector.tsx     # Active environment dropdown
+│   │   ├── EnvironmentsPage.tsx# Manage environments + variables
+│   │   ├── LogsPage.tsx        # Response inspector (body + headers)
 │   │   ├── RequestBar.tsx      # Method / URL / Send button
 │   │   ├── Tabs.tsx            # Send Mode | Headers | Body
-│   │   ├── tabs/
-│   │   │   ├── SendModeTab.tsx
-│   │   │   ├── HeadersTab.tsx
-│   │   │   └── BodyTab.tsx
-│   │   ├── LogPanel.tsx        # Response log container
-│   │   ├── LogEntries.tsx      # Log list + filter pills
-│   │   ├── LogHeader.tsx       # Title + export + clear
-│   │   └── StatsRow.tsx        # 4-chip stats row
+│   │   ├── tabs/{SendModeTab,HeadersTab,BodyTab}.tsx
+│   │   ├── LogPanel.tsx        # Burning-rope progress + compact log
+│   │   ├── LogEntries.tsx, LogHeader.tsx, StatsRow.tsx
 │   ├── hooks/
 │   │   ├── useScheduler.ts     # Tauri event listeners + invoke
-│   │   ├── useProfiles.ts      # Profile CRUD
+│   │   ├── useCollections.ts   # Collection / request / env CRUD
 │   │   └── useTheme.ts         # Dark/light toggle
+│   ├── lib/
+│   │   └── vars.ts             # {{name}} variable resolution
 │   └── store/
 │       └── appStore.ts         # Zustand global state
 │
 ├── src-tauri/                  # Rust backend
 │   ├── src/
-│   │   ├── main.rs
-│   │   ├── lib.rs              # Tauri commands
+│   │   ├── main.rs, lib.rs     # Tauri commands
 │   │   ├── scheduler.rs        # Async HTTP loop (tokio + reqwest)
-│   │   ├── profiles.rs         # ~/.ohayo_profiles.json
-│   │   ├── http_client.rs      # HTTP execution
+│   │   ├── collections.rs      # `.ohy` folder/file store
+│   │   ├── config.rs           # Last-opened collection
+│   │   ├── http_client.rs      # HTTP execution (+ response body)
 │   │   └── types.rs            # Shared types
 │   └── tauri.conf.json
 │
-├── Dockerfile                  # Web-only preview
-├── docker-compose.yml
 └── package.json
 ```
 
@@ -154,8 +165,10 @@ to appear in the terminal — the window opens right after.
 xattr -d com.apple.quarantine "src-tauri/target/release/bundle/macos/Ohayo.app"
 ```
 
-**Profiles not loading**
-Profiles are stored in `~/.ohayo_profiles.json`. The file is created automatically on first save.
+**Collection not reopening**
+The last-opened collection path is remembered in `<config-dir>/ohayo/config.json`
+(e.g. `~/Library/Application Support/ohayo/config.json` on macOS). If the folder was
+moved or deleted, just open it again from the sidebar.
 
 ---
 

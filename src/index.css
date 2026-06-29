@@ -67,6 +67,21 @@
   ::-webkit-scrollbar-thumb:hover { background: rgb(var(--acc) / 0.5); }
 
   ::selection { background: rgb(var(--acc) / 0.25); }
+
+  /* Native controls (time picker, spinners) follow the app theme */
+  [data-theme="dark"]  { color-scheme: dark; }
+  [data-theme="light"] { color-scheme: light; }
+
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity 0.15s ease;
+  }
+  input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+  input[type="time"]::-webkit-datetime-edit { color: rgb(var(--tp)); }
+
+  /* Global select-none (on app root) otherwise blocks HTML5 drag in WebKit */
+  [draggable="true"] { -webkit-user-drag: element; }
 }
 
 /* ── Components ─────────────────────────────────────────────────── */

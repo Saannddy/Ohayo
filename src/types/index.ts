@@ -2,6 +2,7 @@ export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | 
 export type ScheduleMode = "single" | "count" | "continuous";
 export type LogFilter = "ALL" | "2xx" | "3xx" | "4xx" | "5xx" | "ERR";
 export type LogTag = "2xx" | "3xx" | "4xx" | "5xx" | "error";
+export type Page = "request" | "logs" | "environments";
 
 export interface ScheduleConfig {
   url: string;
@@ -23,6 +24,9 @@ export interface LogEntry {
   elapsedMs: number;
   error?: string;
   tag: LogTag;
+  url?: string;
+  body?: string;
+  headers?: Record<string, string>;
 }
 
 export interface Stats {
@@ -33,7 +37,10 @@ export interface Stats {
   lastStatus: number | null;
 }
 
-export interface Profile {
+/** A saved request, persisted as one `.ohy` file. */
+export interface RequestFile {
+  kind?: string;
+  name: string;
   url: string;
   method: string;
   headers: Record<string, string>;
@@ -41,7 +48,35 @@ export interface Profile {
   mode: string;
   interval: string;
   count: string;
+  startTime?: string;
   stopTime: string;
+}
+
+/** A node in the collection tree (folder or request). */
+export interface TreeNode {
+  name: string;
+  path: string;
+  isDir: boolean;
+  method?: string | null;
+  children: TreeNode[];
+}
+
+export interface Environment {
+  name: string;
+  vars: Record<string, string>;
+}
+
+export interface BundleNode {
+  name: string;
+  isDir: boolean;
+  request?: RequestFile | null;
+  children: BundleNode[];
+}
+
+export interface Bundle {
+  name: string;
+  root: BundleNode;
+  environments: Environment[];
 }
 
 export interface ResponsePayload {
@@ -51,6 +86,8 @@ export interface ResponsePayload {
   status: number;
   elapsedMs: number;
   url: string;
+  body: string;
+  headers: Record<string, string>;
 }
 
 export interface ErrorPayload {

@@ -42,15 +42,38 @@ pub async fn make_request(
 
     let elapsed = || start.elapsed().as_secs_f64() * 1000.0;
 
+    // Cap response body to bound memory (256 KB).
+    const MAX_BODY: usize = 256 * 1024;
+
     match req.send().await {
-        Ok(resp) => RequestResult::Success(ResponsePayload {
-            timestamp: ts,
-            count: request_count,
-            method: method.to_string(),
-            status: resp.status().as_u16(),
-            elapsed_ms: elapsed(),
-            url: url.to_string(),
-        }),
+        Ok(resp) => {
+            let status = resp.status().as_u16();
+            let resp_headers: HashMap<String, String> = resp
+                .headers()
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
+                .collect();
+            // Latency reflects time-to-headers, before draining the body.
+            let elapsed_ms = elapsed();
+            let raw = resp.text().await.unwrap_or_default();
+            let body = if raw.len() > MAX_BODY {
+                let mut end = MAX_BODY;
+                while !raw.is_char_boundary(end) { end -= 1; }
+                format!("{}… [truncated]", &raw[..end])
+            } else {
+                raw
+            };
+            RequestResult::Success(ResponsePayload {
+                timestamp: ts,
+                count: request_count,
+                method: method.to_string(),
+                status,
+                elapsed_ms,
+                url: url.to_string(),
+                body,
+                headers: resp_headers,
+            })
+        }
         Err(e) => RequestResult::Failure(ErrorPayload {
             timestamp: ts,
             count: request_count,
