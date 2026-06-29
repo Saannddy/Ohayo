@@ -75,25 +75,24 @@ export function SendModeTab() {
             <>
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wide">
-                  From (HH:MM)
+                  From
                 </label>
                 <input
-                  type="text"
+                  type="time"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  placeholder="now"
                   className="input-base"
+                  title="Leave empty to start now"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wide">
-                  Until (HH:MM)
+                  Until
                 </label>
                 <input
-                  type="text"
+                  type="time"
                   value={stopTime}
                   onChange={(e) => setStopTime(e.target.value)}
-                  placeholder="23:59"
                   className="input-base"
                 />
               </div>

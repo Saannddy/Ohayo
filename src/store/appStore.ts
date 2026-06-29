@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { HttpMethod, LogEntry, LogFilter, ScheduleMode, Stats } from "../types";
+import type { Environment, HttpMethod, LogEntry, LogFilter, Page, ScheduleMode, Stats, TreeNode } from "../types";
 
 interface HeaderRow { id: string; key: string; value: string; }
 
@@ -22,6 +22,19 @@ interface AppStore {
   stats: Stats;
   isDark: boolean;
 
+  // Navigation
+  page: Page;
+  selectedLogId: string | null;
+
+  // Collections
+  collectionRoot: string | null;
+  tree: TreeNode | null;
+  activeRequestPath: string | null;
+
+  // Environments
+  environments: Environment[];
+  activeEnvName: string | null;
+
   setUrl: (v: string) => void;
   setMethod: (v: HttpMethod) => void;
   setMode: (v: ScheduleMode) => void;
@@ -42,7 +55,22 @@ interface AppStore {
   setStats: (s: Stats) => void;
   clearLog: () => void;
   toggleTheme: () => void;
-  applyProfile: (data: {
+
+  setPage: (p: Page) => void;
+  setSelectedLogId: (id: string | null) => void;
+
+  setCollectionRoot: (path: string | null) => void;
+  setTree: (t: TreeNode | null) => void;
+  setActiveRequestPath: (p: string | null) => void;
+  draggingPath: string | null;
+  setDraggingPath: (p: string | null) => void;
+  newRequest: () => void;
+
+  setEnvironments: (envs: Environment[]) => void;
+  setActiveEnvName: (name: string | null) => void;
+  activeVars: () => Record<string, string>;
+
+  applyRequest: (data: {
     url: string; method: string; mode: string;
     interval: string; count: string; startTime?: string; stopTime: string;
     headers: Record<string, string>; body: string;
@@ -68,6 +96,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
   logFilter: "ALL",
   stats: { total: 0, success: 0, successPct: 0, avgMs: 0, lastStatus: null },
   isDark: true,
+
+  page: "request",
+  selectedLogId: null,
+
+  collectionRoot: null,
+  tree: null,
+  activeRequestPath: null,
+  draggingPath: null,
+
+  environments: [],
+  activeEnvName: null,
 
   setUrl: (v) => set({ url: v }),
   setMethod: (v) => set({ method: v }),
@@ -101,7 +140,34 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   toggleTheme: () => set((s) => ({ isDark: !s.isDark })),
 
-  applyProfile: (data) => set({
+  setPage: (p) => set({ page: p }),
+  setSelectedLogId: (id) => set({ selectedLogId: id }),
+
+  setCollectionRoot: (path) => set({ collectionRoot: path }),
+  setTree: (t) => set({ tree: t }),
+  setActiveRequestPath: (p) => set({ activeRequestPath: p }),
+  setDraggingPath: (p) => set({ draggingPath: p }),
+  newRequest: () => set({
+    url: "", method: "GET", mode: "continuous",
+    interval: "5", count: "10", startTime: "", stopTime: "23:59",
+    headers: [], body: "",
+    activeRequestPath: null, page: "request",
+    statusMessage: "Ready", statusColor: "muted",
+  }),
+
+  setEnvironments: (envs) => set((s) => ({
+    environments: envs,
+    activeEnvName: envs.some((e) => e.name === s.activeEnvName)
+      ? s.activeEnvName
+      : null,
+  })),
+  setActiveEnvName: (name) => set({ activeEnvName: name }),
+  activeVars: () => {
+    const { environments, activeEnvName } = get();
+    return environments.find((e) => e.name === activeEnvName)?.vars ?? {};
+  },
+
+  applyRequest: (data) => set({
     url: data.url,
     method: data.method as HttpMethod,
     mode: data.mode as ScheduleMode,

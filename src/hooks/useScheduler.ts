@@ -4,6 +4,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useAppStore } from "../store/appStore";
 import type { ResponsePayload, ErrorPayload, CountdownPayload, StatsPayload, LogEntry } from "../types";
 import { getLogTag } from "../types";
+import { resolveVars, resolveHeaders } from "../lib/vars";
 
 export function useScheduler() {
   const store = useAppStore();
@@ -16,6 +17,7 @@ export function useScheduler() {
         id: `${Date.now()}-${Math.random()}`,
         timestamp: p.timestamp, count: p.count, method: p.method,
         status: p.status, elapsedMs: p.elapsedMs, tag: getLogTag(p.status),
+        url: p.url, body: p.body, headers: p.headers,
       };
       store.addLogEntry(entry);
     }));
@@ -37,11 +39,15 @@ export function useScheduler() {
     }));
 
     tasks.push(listen<CountdownPayload>("scheduler:countdown", ({ payload: p }) => {
-      store.setProgress(p.remaining / p.total);
+      // remaining counts total→1; map so the rope reaches 0 on the final second
+      // (remaining 1) and refills to 1 on the next `sent` event.
+      store.setProgress(p.total > 0 ? (p.remaining - 1) / p.total : 0);
       store.setStatus(`Next request in ${p.remaining}s…`, "muted");
     }));
 
     tasks.push(listen<{ count: number; target: number | null }>("scheduler:sent", ({ payload: p }) => {
+      // Refill the rope the instant a request fires, so it burns R→L cleanly each interval.
+      store.setProgress(1);
       if (p.target != null) {
         store.setStatus(`Sent ${p.count} of ${p.target}…`, "success");
       }
@@ -80,10 +86,14 @@ export function useScheduler() {
 
   const startScheduler = useCallback(async () => {
     const s = useAppStore.getState();
+    const vars = s.activeVars();
+    const rawBody = s.mode !== "single" ? s.body : "";
     await invoke("start_scheduler", {
       config: {
-        url: s.url, method: s.method, headers: s.getHeadersMap(),
-        body: s.mode !== "single" ? s.body : "",
+        url: resolveVars(s.url, vars),
+        method: s.method,
+        headers: resolveHeaders(s.getHeadersMap(), vars),
+        body: resolveVars(rawBody, vars),
         mode: s.mode,
         interval: parseInt(s.interval) || 5,
         count: parseInt(s.count) || 1,

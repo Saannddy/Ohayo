@@ -32,3 +32,6 @@ build/
 *.deb
 *.rpm
 *.AppImage
+
+# --── Miscellaneous ─────────────────────────────────────────────────
+.claude/

@@ -1,0 +1,25 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="round">
+      <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#round)">
+    <!-- Single flat background -->
+    <rect x="0" y="0" width="1024" height="1024" fill="#15112B"/>
+
+    <!-- Minimal mono line art: circle + uwu face -->
+    <g fill="none" stroke="#E9D5FF" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Head / "O" -->
+      <circle cx="512" cy="512" r="300"/>
+
+      <!-- uwu eyes (two u shapes) -->
+      <path d="M398 470 Q 434 524 470 470"/>
+      <path d="M554 470 Q 590 524 626 470"/>
+
+      <!-- w mouth (ω) -->
+      <path d="M452 596 Q 482 638 512 600 Q 542 638 572 596"/>
+    </g>
+  </g>
+</svg>
