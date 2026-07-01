@@ -72,7 +72,7 @@ source "$HOME/.cargo/env"
 
 ```bash
 # 1. Clone
-git clone https://github.com/your-username/Ohayo.git
+git clone https://github.com/Saannddy/Ohayo.git
 cd Ohayo
 
 # 2. Install JS dependencies
