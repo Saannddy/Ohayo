@@ -37,6 +37,30 @@ Built with **Tauri 2** (Rust backend) + **React / TypeScript** frontend.
 > xcode-select --install
 > ```
 
+> **Linux only:** Tauri needs system libraries (WebKitGTK, GTK, etc.) that are **not** installed by `npm install` or `cargo`. Install them from your distro before building.
+>
+> **Arch / Manjaro**
+> ```bash
+> sudo pacman -S --needed \
+>   webkit2gtk-4.1 base-devel curl wget file openssl \
+>   appmenu-gtk-module libappindicator-gtk3 librsvg
+> ```
+>
+> **Debian / Ubuntu**
+> ```bash
+> sudo apt update && sudo apt install -y \
+>   libwebkit2gtk-4.1-dev build-essential curl wget file \
+>   libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+> ```
+>
+> **Fedora**
+> ```bash
+> sudo dnf install -y webkit2gtk4.1-devel openssl-devel curl wget file \
+>   libappindicator-gtk3-devel librsvg2-devel && sudo dnf group install -y "C Development Tools and Libraries"
+> ```
+>
+> See [Tauri prerequisites](https://tauri.app/start/prerequisites/) for other distros.
+
 After installing Rust, reload your shell (or open a new terminal):
 ```bash
 source "$HOME/.cargo/env"
@@ -151,6 +175,13 @@ source "$HOME/.cargo/env"
 # Then add to your shell profile permanently:
 echo '. "$HOME/.cargo/env"' >> ~/.zshrc   # zsh
 echo '. "$HOME/.cargo/env"' >> ~/.bashrc  # bash
+```
+
+**Linux build fails: `webkit2gtk` / `glib` / `gdk` not found (missing dependencies)**
+System libraries are missing. `npm install` and `cargo` do **not** provide these — install them from your distro. See the **Linux only** note under [Prerequisites](#prerequisites). On Arch:
+```bash
+sudo pacman -S --needed webkit2gtk-4.1 base-devel curl wget file openssl \
+  appmenu-gtk-module libappindicator-gtk3 librsvg
 ```
 
 **Window doesn't appear after `npm run tauri dev`**
